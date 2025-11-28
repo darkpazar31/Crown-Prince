@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Crown Prince — Kart Oyunu</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+
+    <!-- Oyunun kısa hikayesi (gösterilmeyecek, dosya içinde kalsın):
+         Kral öldüğünde tahta iki veliaht aday olur. Geleneksel 'Kral Seçme Kartı' turnuvarında
+         iki prens (veliaht) hazineler toplar. Sonunda en çok hazinesi olan, yeni kral olur.
+         (Bu hikâye oyun içinde gösterilmeyecek, yalnızca dosyada kayıtlıdır — kullanıcı isteği üzerine.)
+    -->
+
+    <audio id="sound-play" src="sounds/card_play.mp3" preload="auto"></audio>
+    <audio id="sound-damage" src="sounds/damage.mp3" preload="auto"></audio>
+    <audio id="sound-score" src="sounds/score_up.mp3" preload="auto"></audio>
+    <audio id="sound-win" src="sounds/win.mp3" preload="auto"></audio>
+
+    <style>
+        /* --- ORTA ÇAĞ / ROYAL THEME CSS --- */
+        :root {
+            --medieval-wood-dark: #2f1b17;
+            --medieval-wood-board: #4b2f2a;
+            --medieval-stone: #7a6f6b;
+            --parchment: #f7f4e9;
+            --gold: #d4af37;
+            --text-light: #f4eee6;
+            --text-dark: #2a2a2a;
+            --ruby: #b10a0a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--medieval-wood-dark);
+            color: var(--text-light);
+            font-family: 'MedievalSharp', cursive;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* MENU */
+        #main-menu {
+            position: absolute;
+            width: 84%;
+            max-width: 560px;
+            padding: 36px 22px;
+            background-color: var(--medieval-wood-board);
+            border: 10px solid var(--gold);
+            border-radius: 18px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.9);
+            z-index: 100;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        #main-menu.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+
+        #menu-title {
+            font-size: 34px;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+        #menu-sub { font-size: 14px; color: var(--parchment); margin-bottom: 16px; }
+
+        #menu-rules { font-size: 13px; text-align: left; padding: 12px; background: rgba(0,0,0,0.25); border-radius: 6px; margin-bottom: 16px; }
+
+        /* BOARD */
+        #game-board {
+            width: 96%;
+            max-width: 980px;
+            max-height: 920px;
+            background-color: var(--medieval-wood-board);
+            border: 10px solid var(--medieval-stone);
+            border-radius: 14px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.85), inset 0 0 15px rgba(0,0,0,0.5);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        #game-board.hidden { display: none; }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.35);
+            border: 3px solid var(--gold);
+            border-radius: 8px;
+            font-size: 15px;
+            color: var(--gold);
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .multiplier { position: absolute; top: -14px; right: 10px; background: var(--ruby); padding: 4px 8px; border-radius: 6px; border: 2px solid var(--gold); font-size: 11px; }
+
+        .hand-area {
+            display: flex;
+            gap: 12px;
+            min-height: 180px;
+            align-items: center;
+            overflow-x: auto;
+            padding: 10px;
+            width: 100%;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.18);
+        }
+        .hand-area::-webkit-scrollbar { display: none; }
+
+        .card {
+            min-width: 120px;
+            width: 120px;
+            height: 170px;
+            background: var(--parchment);
+            border: 3px solid var(--medieval-wood-dark);
+            border-radius: 10px;
+            color: var(--text-dark);
+            box-shadow: 5px 6px 12px rgba(0,0,0,0.7), inset 0 0 10px rgba(0,0,0,0.15);
+            transition: transform 0.18s ease;
+            cursor: pointer;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        .card:hover { transform: translateY(-10px) rotate(-1deg) scale(1.04); }
+
+        .card .card-img { width: 56px; height: 56px; display:flex; align-items:center; justify-content:center; margin-bottom: 6px; }
+        .card .card-img svg { width: 48px; height: 48px; }
+
+        /* CARD TYPE STYLES */
+        .type-puan, .type-can { border-color: var(--gold); }
+        .type-yakut { border-color: var(--ruby); box-shadow: 0 0 12px rgba(177,10,10,0.6); }
+        .type-ates { border-color: #a23b00; }
+        .type-buz { border-color: #1e90ff; }
+        .type-kalkan, .type-hirsiz { border-color: #555; background: #efefef; }
+
+        /* CENTER */
+        #table-center { display:flex; justify-content:space-around; align-items:flex-start; height:200px; position:relative; margin:10px 0; }
+
+        #discard-pile, #deck-area {
+            width: 140px; height: 190px; border-radius:8px; box-shadow: 5px 6px 12px rgba(0,0,0,0.6);
+            display:flex; align-items:center; justify-content:center; flex-direction:column; padding:8px;
+        }
+        #discard-pile { border: 3px dashed #777; background: rgba(0,0,0,0.35); color: var(--parchment); }
+        #deck-area { background: linear-gradient(180deg,#3b2a25,#2b201c); border: 3px solid var(--medieval-stone); color: var(--gold); transform: rotate(2deg); }
+
+        /* LOG: artık alt-sol köşede, zamanla kaybolur (göz yormaz) */
+        #log-area {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            width: 240px;
+            max-width: 35%;
+            padding: 8px 10px;
+            background: rgba(0,0,0,0.45);
+            border-radius: 8px;
+            border: 2px solid rgba(212,175,55,0.12);
+            color: var(--parchment);
+            font-size: 13px;
+            text-align: left;
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.6);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 60;
+        }
+
+        /* BUTTON */
+        .btn-action { padding: 12px 20px; cursor:pointer; background: #333; border: 3px solid var(--gold); color: var(--gold); font-size:16px; border-radius:8px; width:100%; margin-top:10px; }
+
+    </style>
+</head>
+<body>
+
+    <div id="main-menu">
+        <h1 id="menu-title">Crown Prince</h1>
+        <div id="menu-sub">Geleneksel Kral Seçme Kart Oyunu — İki veliaht, en çok hazinesine sahip olan galip gelir.</div>
+        <div id="menu-rules">
+            <p><strong>Amaç:</strong> Rakibinden önce hazineni azaltmamak veya destedeki kartlar bitince daha fazla Hazine (para) taşımak.</p>
+            <p><strong>Hazine Kartları:</strong> Farklı değerlerde Para (Bakır, Gümüş, Altın, Elmas).</p>
+            <p><strong>Yakut Kartı:</strong> Büyük Hazine verir ve sonraki 2 hamle için çarpan sağlar (2x).</p>
+            <p><strong>Aksiyon Kartları:</strong> Rakibe zarar verir veya stratejik avantaj sağlar (Ateş, Buz, Kalkan, Hırsız).</p>
+            <p><strong>Kaybedersin:</strong> Hazinen rakipten azaldığında veya oyun sonunda daha az Hazine taşımışsan.</p>
+        </div>
+        <button class="btn-action" onclick="showGame()">OYUN TAHTASINA GİRİN</button>
+    </div>
+
+    <div id="game-board" class="hidden">
+
+        <div class="stats" id="cpu-stats">
+            <span>🤴 RAKİP (VELİAHT)</span>
+            <span id="cpu-score">Hazine: 50</span>
+        </div>
+
+        <div id="cpu-hand" class="hand-area"></div>
+
+        <div id="table-center">
+
+            <div id="discard-pile">
+                <span id="discard-text">ATILAN KARTLAR</span>
+            </div>
+
+            <div id="deck-area">
+                <span id="deck-count">0</span>
+                <span>KART KALDI</span>
+            </div>
+
+            <div id="log-area"></div>
+        </div>
+
+        <div id="player-hand" class="hand-area"></div>
+
+        <div class="stats" id="player-stats">
+            <span>👑 SEN (VELİAHT)</span>
+            <span id="player-score">Hazine: 50</span>
+        </div>
+
+        <button class="btn-action" onclick="startGame()">YENİ OYUN BAŞLAT</button>
+    </div>
+
+<script>
+    // --- OYUN MANTIĞI (Kısmen orijinal kod güncellendi: "Puan" -> "Hazine", emojiler -> SVG ikonlar,
+    // log alt-solda gösterilir ve 3s sonra kaybolur) ---
+
+    const kartKatalogu = [
+        { isim: "Bakır", tur: "puan", deger: 5, renk: "type-puan", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="26" fill="#e6b04a" stroke="#b27a2b" stroke-width="3"/><circle cx="32" cy="32" r="10" fill="#fff3d6" opacity="0.3"/></svg></div>`, tekrar: 30 },
+        { isim: "Gümüş", tur: "puan", deger: 10, renk: "type-puan", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="26" fill="#cfd6db" stroke="#8f9aa0" stroke-width="3"/><circle cx="32" cy="32" r="8" fill="#ffffff" opacity="0.2"/></svg></div>`, tekrar: 20 },
+        { isim: "Altın", tur: "puan", deger: 15, renk: "type-puan", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M8 44c8 8 20 12 24 12s16-4 24-12V20H8v24z" fill="#ffd66b" stroke="#c79b2a" stroke-width="2"/><circle cx="32" cy="28" r="6" fill="#fff" opacity="0.25"/></svg></div>`, tekrar: 10 },
+        { isim: "Elmas", tur: "puan", deger: 30, renk: "type-puan", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><polygon points="32,8 52,28 32,56 12,28" fill="#9ce0ff" stroke="#4ea4d6" stroke-width="2"/><polygon points="32,14 46,28 32,48 18,28" fill="#e6fbff" opacity="0.6"/></svg></div>`, tekrar: 5 },
+        { isim: "Yakut", tur: "yakut", deger: 50, renk: "type-yakut", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><polygon points="32,6 52,26 32,58 12,26" fill="#d84b4b" stroke="#8f1f1f" stroke-width="2"/><polygon points="32,14 46,28 32,48 18,28" fill="#ffbdbd" opacity="0.25"/></svg></div>`, tekrar: 1 },
+
+        { isim: "Kalp Taşı", tur: "can", deger: 25, renk: "type-can", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M32 50s18-12 18-24-8-18-18-8c-10-10-18-2-18 8s18 24 18 24z" fill="#ff8da1" stroke="#b53b58" stroke-width="2"/></svg></div>`, tekrar: 5 },
+
+        { isim: "Ateş Topu", tur: "ates", deger: -15, renk: "type-ates", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M34 8c-4 8 4 12 2 22 6-2 10 2 10 8-6-2-12 0-16 4-4-6-12-8-18-6 6-6 6-18 16-26 2 4 2 4 4 4z" fill="#ff7a2a" stroke="#b04510" stroke-width="2"/></svg></div>`, tekrar: 7 },
+        { isim: "Buz Mührü", tur: "buz", deger: -5, renk: "type-buz", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M32 6l4 18 18 4-18 4-4 18-4-18-18-4 18-4 4-18z" fill="#d0f0ff" stroke="#5aa7d6" stroke-width="2"/></svg></div>`, tekrar: 3 },
+
+        { isim: "Kalkan", tur: "kalkan", deger: 0, renk: "type-kalkan", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M32 6l14 6v14c0 12-9 22-14 26-5-4-14-14-14-26V12l14-6z" fill="#dfe6ea" stroke="#6b6f73" stroke-width="2"/></svg></div>`, tekrar: 3 },
+        { isim: "Hırsız", tur: "hirsiz", deger: 0, renk: "type-hirsiz", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M20 18c0-6 6-10 12-10s12 4 12 10c0 4-3 6-6 6H26c-3 0-6-2-6-6z" fill="#333"/><path d="M18 44c6 6 20 8 28 0-8 2-20 2-28 0z" fill="#555"/></svg></div>`, tekrar: 3 }
+    ];
+
+    // oyunun iç durumu
+    let playerHand = [], cpuHand = [], playerScore = 50, cpuScore = 50, turn = "player", anaDeste = [], gameActive = true, lastPlayedCard = null;
+    let playerMultiplierTurns = 0, cpuMultiplierTurns = 0, cpuHasShield = false, playerHasShield = false;
+
+    function playSound(id) {
+        const audio = document.getElementById(id);
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(e => {/* sessiz hata */});
+        }
+    }
+
+    function createAndShuffleDeck() {
+        anaDeste = [];
+        kartKatalogu.forEach(kart => {
+            for (let i = 0; i < kart.tekrar; i++) anaDeste.push({...kart});
+        });
+        for (let i = anaDeste.length-1; i>0; i--) {
+            const j = Math.floor(Math.random()*(i+1));
+            [anaDeste[i], anaDeste[j]] = [anaDeste[j], anaDeste[i]];
+        }
+    }
+
+    function drawCard() {
+        return anaDeste.length ? anaDeste.pop() : null;
+    }
+
+    function showGame(){ document.getElementById('main-menu').classList.add('hidden'); document.getElementById('game-board').classList.remove('hidden'); startGame(); }
+
+    function startGame(){
+        createAndShuffleDeck();
+        playerScore = 50; cpuScore = 50;
+        playerHand=[]; cpuHand=[]; turn="player"; gameActive=true; lastPlayedCard=null;
+        playerMultiplierTurns = cpuMultiplierTurns = 0; cpuHasShield = playerHasShield = false;
+        for(let i=0;i<3;i++){ playerHand.push(drawCard()); cpuHand.push(drawCard()); }
+        renderHands(); renderCenterArea(); updateUI(true); log("Oyun Başladı! Sıra sende.");
+    }
+
+    function checkZeroScore(){
+        if (playerScore <= 0 || cpuScore <= 0) {
+            if (gameActive) {
+                const winner = playerScore > cpuScore ? 'Sen' : 'CPU';
+                endGame(`ANI ÖLÜM! Rakibin hazinesini bitirerek ${winner} kazandı!`, true);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function applyMultiplier(score, multiplierTurns){ return multiplierTurns>0 ? score*2 : score; }
+
+    function playCard(index, owner){
+        if (!gameActive || turn !== owner) return;
+        let isPlayer = owner === 'player';
+        let currentHand = isPlayer ? playerHand : cpuHand;
+        let opponentHand = isPlayer ? cpuHand : playerHand;
+        let oldPlayerScore = playerScore, oldCpuScore = cpuScore;
+
+        const card = currentHand.splice(index,1)[0];
+        lastPlayedCard = card;
+        playSound('sound-play');
+
+        let finalValue = card.deger;
+        let logMessage = `${isPlayer ? 'Sen' : 'CPU'} ${card.isim} oynadı! `;
+
+        if (card.tur === "puan" || card.tur === "can" || card.tur === "yakut"){
+            finalValue = applyMultiplier(finalValue, isPlayer ? playerMultiplierTurns : cpuMultiplierTurns);
+            if (isPlayer) playerScore += finalValue; else cpuScore += finalValue;
+            logMessage += `(+${finalValue} Hazine)`;
+            if (card.tur === "yakut"){
+                if (isPlayer) playerMultiplierTurns += 2; else cpuMultiplierTurns += 2;
+                logMessage += ` 💥 (SONRAKİ 2 HAMLE 2X)`;
+            }
+        } else if (card.tur === "ates" || card.tur === "buz"){
+            let isOpponentShielded = isPlayer ? cpuHasShield : playerHasShield;
+            if (isOpponentShielded){
+                logMessage += ` 🛡️ (Kalkan tarafından engellendi!)`;
+                if (isPlayer) cpuHasShield = false; else playerHasShield = false;
+            } else {
+                finalValue = applyMultiplier(finalValue, isPlayer ? playerMultiplierTurns : cpuMultiplierTurns);
+                if (isPlayer) cpuScore += finalValue; else playerScore += finalValue;
+                logMessage += ` (${finalValue} Hasar)`;
+            }
+        } else if (card.tur === "kalkan"){
+            if (isPlayer) playerHasShield = true; else cpuHasShield = true;
+            logMessage += ` (Kalkan Aktif!)`;
+        } else if (card.tur === "hirsiz"){
+            if (opponentHand.length > 0){
+                const stolenIndex = Math.floor(Math.random()*opponentHand.length);
+                const stolenCard = opponentHand.splice(stolenIndex,1)[0];
+                anaDeste.unshift(stolenCard);
+                logMessage += ` (Rakip kartı çalındı!)`;
+            } else { logMessage += ` (Rakibin eli boş.)`; }
+        }
+
+        if (card.tur !== "kalkan" && card.tur !== "hirsiz"){
+            if (isPlayer && playerMultiplierTurns>0) playerMultiplierTurns--;
+            if (!isPlayer && cpuMultiplierTurns>0) cpuMultiplierTurns--;
+        }
+
+        updateUI(false, oldPlayerScore, oldCpuScore);
+        log(logMessage);
+
+        if (checkZeroScore()) return;
+
+        const drawnCard = drawCard();
+        if (drawnCard) (isPlayer ? playerHand : cpuHand).push(drawnCard);
+
+        renderHands(); renderCenterArea();
+
+        if (anaDeste.length === 0) {
+            endGame("DESTEDE KART BİTTİ!", false);
+            return;
+        }
+
+        if (isPlayer){ turn = "cpu"; setTimeout(cpuTurn, 900); } else { turn = "player"; log("Sıra sende!"); }
+    }
+
+    function cpuTurn(){
+        if (!gameActive || cpuHand.length===0){ turn="player"; return; }
+        let idx = -1;
+        const lethal = cpuHand.findIndex(c => c.tur==="ates" && playerScore <= Math.abs(applyMultiplier(c.deger, cpuMultiplierTurns)));
+        if (lethal !== -1) idx = lethal;
+        if (idx === -1){
+            const y = cpuHand.findIndex(c=>c.tur==="yakut");
+            if (y !== -1) idx = y;
+        }
+        if (idx === -1 && !cpuHasShield && cpuScore < 20){
+            const s = cpuHand.findIndex(c=>c.tur==="kalkan");
+            if (s !== -1) idx = s;
+        }
+        if (idx === -1 && cpuScore < 60){
+            const h = cpuHand.findIndex(c=>c.tur==="puan" && c.deger >= 15);
+            if (h !== -1) idx = h;
+        }
+        if (idx === -1 && playerHand.length>0 && playerScore > 70){
+            const t = cpuHand.findIndex(c=>c.tur==="hirsiz");
+            if (t !== -1) idx = t;
+        }
+        if (idx === -1) idx = Math.floor(Math.random()*cpuHand.length);
+        playCard(idx, 'cpu');
+    }
+
+    function endGame(message, isSudden){
+        if (!gameActive) return;
+        gameActive = false;
+        playSound('sound-win');
+        let result = "";
+        if (isSudden) result = message;
+        else {
+            if (playerScore > cpuScore) result = "🏆 HAZİNE YARIŞINI KAZANDIN! 🏆";
+            else if (cpuScore > playerScore) result = "💀 HAZİNE YARIŞINI KAYBETTİN...";
+            else result = "🤝 BERABERE!";
+        }
+        log(result);
+        setTimeout(()=>alert(result), 120);
+    }
+
+    function renderCenterArea(){
+        const discardPile = document.getElementById("discard-pile");
+        discardPile.innerHTML = '';
+        if (lastPlayedCard){
+            const div = document.createElement("div");
+            div.className = `card discarded-card ${lastPlayedCard.renk}`;
+            div.innerHTML = `${lastPlayedCard.img}<div style="font-size:13px;margin-top:6px;">${lastPlayedCard.isim}</div>`;
+            discardPile.appendChild(div);
+        } else {
+            discardPile.innerHTML = `<span id="discard-text">ATILAN KARTLAR</span>`;
+        }
+        document.getElementById("deck-count").innerText = anaDeste.length;
+    }
+
+    function renderHands(){
+        const pArea = document.getElementById("player-hand");
+        const cArea = document.getElementById("cpu-hand");
+        pArea.innerHTML = ""; cArea.innerHTML = "";
+
+        playerHand.forEach((card, index) => {
+            const div = document.createElement("div");
+            div.className = `card ${card.renk}`;
+            div.innerHTML = `${card.img}<div style="font-weight:700;">${card.isim}</div><div style="font-size:12px;">${card.deger>0? '+'+card.deger : card.deger} Hazine</div>`;
+            div.onclick = () => playCard(index, 'player');
+            pArea.appendChild(div);
+        });
+
+        cpuHand.forEach(() => {
+            const div = document.createElement("div");
+            div.className = "card";
+            div.style.backgroundColor = "#3b3b3b";
+            div.style.borderColor = "#2b1b18";
+            div.style.color = "#eee";
+            div.innerHTML = `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="52" height="44" rx="6" fill="#6b6b6b"/></svg></div><div style="font-weight:700;">RAKİP KARTI</div>`;
+            cArea.appendChild(div);
+        });
+    }
+
+    function updateUI(skip=false, oldP=0, oldC=0){
+        const pStats = document.getElementById("player-stats");
+        const cStats = document.getElementById("cpu-stats");
+        pStats.classList.remove('score-flash-red','score-flash-green');
+        cStats.classList.remove('score-flash-red','score-flash-green');
+
+        let pMultiplierHtml = playerMultiplierTurns>0 ? `<div class="multiplier">2X (${playerMultiplierTurns})</div>` : '';
+        let cMultiplierHtml = cpuMultiplierTurns>0 ? `<div class="multiplier">2X (${cpuMultiplierTurns})</div>` : '';
+        if (playerHasShield) pMultiplierHtml += `<div class="multiplier" style="right:80px;background:#3498db;">🛡️</div>`;
+        if (cpuHasShield) cMultiplierHtml += `<div class="multiplier" style="right:80px;background:#3498db;">🛡️</div>`;
+
+        pStats.innerHTML = `<span>👑 SEN (VELİAHT)</span><span id="player-score">Hazine: ${playerScore}</span>${pMultiplierHtml}`;
+        cStats.innerHTML = `<span>🤴 RAKİP (VELİAHT)</span><span id="cpu-score">Hazine: ${cpuScore}</span>${cMultiplierHtml}`;
+
+        if (!skip){
+            if (playerScore < oldP) { pStats.classList.add('score-flash-red'); playSound('sound-damage'); }
+            else if (playerScore > oldP) { pStats.classList.add('score-flash-green'); playSound('sound-score'); }
+            if (cpuScore < oldC) { cStats.classList.add('score-flash-red'); playSound('sound-damage'); }
+            else if (cpuScore > oldC) { cStats.classList.add('score-flash-green'); playSound('sound-score'); }
+        }
+
+        setTimeout(()=>{ pStats.classList.remove('score-flash-red','score-flash-green'); cStats.classList.remove('score-flash-red','score-flash-green'); }, 600);
+    }
+
+    // LOG: alt-sol, kaybolma mekanizması
+    let logTimeout = null;
+    function log(msg){
+        const el = document.getElementById("log-area");
+        el.innerText = msg;
+        el.style.opacity = '1';
+        if (logTimeout) clearTimeout(logTimeout);
+        logTimeout = setTimeout(()=>{ el.style.opacity = '0'; }, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+        document.getElementById('game-board').classList.add('hidden');
+        document.getElementById('main-menu').classList.remove('hidden');
+        log("Savaş başlamak üzere...");
+    });
+</script>
+</body>
+</html>
