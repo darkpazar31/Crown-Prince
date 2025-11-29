@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Crown Prince — Kart Oyunu</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <audio id="sound-play" src="sounds/card_play.mp3" preload="auto"></audio>
+    <audio id="sound-damage" src="sounds/damage.mp3" preload="auto"></audio>
+    <audio id="sound-score" src="sounds/score_up.mp3" preload="auto"></audio>
+    <audio id="sound-win" src="sounds/win.mp3" preload="auto"></audio>
+
+    <style>
+        /* --- ORTA ÇAĞ / ROYAL THEME CSS --- */
+        :root {
+            --medieval-wood-dark: #2f1b17;
+            --medieval-wood-board: #4b2f2a;
+            --medieval-stone: #7a6f6b;
+            --parchment: #f7f4e9;
+            --gold: #d4af37;
+            --text-light: #f4eee6;
+            --text-dark: #2a2a2a;
+            --ruby: #b10a0a;
+            --card-back-dark: #3b3b3b;
+            --card-back-border: #2b1b18;
+            --menu-bg-gradient: linear-gradient(145deg, #3a2520, #251814);
+        }
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--medieval-wood-dark);
+            color: var(--text-light);
+            font-family: 'MedievalSharp', cursive;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* YENİ: GİRİŞ EKRANI (SPLASH SCREEN) STİLİ */
+        #splash-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--medieval-wood-dark);
+            z-index: 1000;
+            font-family: 'Cinzel', serif;
+            font-size: 60px;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(255,215,0,0.5);
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        /* MENÜLER GENEL STİL */
+        .game-menu {
+            position: absolute;
+            width: 84%;
+            max-width: 560px;
+            padding: 36px 22px;
+            background: var(--menu-bg-gradient);
+            border: 10px solid var(--gold);
+            border-radius: 18px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.9);
+            z-index: 100;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .game-menu.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+        #menu-title { font-size: 34px; color: var(--gold); margin-bottom: 8px; }
+        #menu-sub { font-size: 14px; color: var(--parchment); margin-bottom: 20px; }
+        
+        .btn-action { 
+            padding: 12px 20px; cursor:pointer; 
+            background: linear-gradient(180deg, #ffd700, #daa520); 
+            border: 3px solid #b8860b; 
+            color: var(--text-dark); 
+            font-size:16px; font-family: 'Cinzel', serif; font-weight: 700;
+            border-radius:8px; width:100%; margin-top:14px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-action:hover { background: linear-gradient(180deg, #ffe55c, #d4a01e); transform: translateY(-1px); }
+
+        /* KART KATALOĞU STİLLERİ */
+        #catalog-menu { max-height: 80vh; overflow-y: auto; text-align: left; }
+        .card-list-item {
+            padding: 10px; margin: 6px 0;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(212,175,55,0.2);
+            border-radius: 5px; cursor: pointer;
+            transition: background 0.1s;
+            font-family: 'Cinzel', serif;
+        }
+        .card-list-item:hover { background: rgba(212,175,55,0.15); }
+        .card-detail { margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; }
+        .card-detail strong { color: var(--gold); font-size: 16px; display: block; margin-bottom: 4px; }
+        .detail-value { font-style: italic; color: var(--parchment); }
+
+        /* OYUN TAHTASI STİLLERİ */
+        #game-board {
+            width: 96%; max-width: 980px; max-height: 920px;
+            background-color: var(--medieval-wood-board);
+            border: 10px solid var(--medieval-stone); border-radius: 14px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.85), inset 0 0 15px rgba(0,0,0,0.5);
+            padding: 14px; display: flex; flex-direction: column;
+            justify-content: space-between;
+        }
+        #game-board.hidden { display: none; }
+
+        .stats {
+            display: flex; justify-content: space-between;
+            padding: 12px 16px; background: rgba(0,0,0,0.35);
+            border: 3px solid var(--gold); border-radius: 8px;
+            font-size: 15px; color: var(--gold); position: relative;
+            margin-bottom: 10px;
+        }
+
+        .multiplier { position: absolute; top: -14px; right: 10px; background: var(--ruby); padding: 4px 8px; border-radius: 6px; border: 2px solid var(--gold); font-size: 11px; }
+        .shield-icon { position: absolute; top: -14px; right: 80px; background: #3498db; padding: 4px 8px; border-radius: 6px; border: 2px solid var(--gold); font-size: 11px; }
+
+        .hand-area {
+            display: flex; gap: 12px; min-height: 180px;
+            align-items: center; overflow-x: auto; padding: 10px;
+            width: 100%; border-radius: 6px; background: rgba(0,0,0,0.18);
+        }
+        .hand-area::-webkit-scrollbar { display: none; }
+
+        .card {
+            min-width: 120px; width: 120px; height: 170px;
+            background: var(--parchment); border: 3px solid var(--medieval-wood-dark);
+            border-radius: 10px; color: var(--text-dark);
+            box-shadow: 5px 6px 12px rgba(0,0,0,0.7), inset 0 0 10px rgba(0,0,0,0.15);
+            transition: transform 0.18s ease; cursor: pointer; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: space-between; font-size: 12px; position: relative;
+            flex-shrink: 0;
+        }
+        .card:hover { transform: translateY(-10px) rotate(-1deg) scale(1.04); }
+
+        .card-back {
+            background-color: var(--card-back-dark) !important;
+            border-color: var(--card-back-border) !important;
+            color: var(--text-light) !important;
+            box-shadow: 5px 6px 12px rgba(0,0,0,0.7);
+            cursor: default;
+        }
+        .card-back:hover { transform: none; }
+        .card-back .card-img svg rect { fill: #6b6b6b; }
+
+        .card .card-img { width: 56px; height: 56px; display:flex; align-items:center; justify-content:center; margin-bottom: 6px; }
+        .card .card-img svg { width: 48px; height: 48px; }
+
+        /* CENTER */
+        #table-center { display:flex; justify-content:space-around; align-items:flex-start; height:200px; position:relative; margin:10px 0; }
+
+        /* DESTE VE ATILAN KART YIĞINLARI */
+        #discard-pile, #deck-area {
+            width: 120px; height: 170px; border-radius:10px;
+            box-shadow: 5px 6px 12px rgba(0,0,0,0.6);
+            display:flex; align-items:center; justify-content:center; flex-direction:column; padding:8px;
+            position: relative;
+        }
+        #discard-pile { border: 3px dashed #777; background: rgba(0,0,0,0.35); color: var(--parchment); }
+        
+        #deck-area { 
+            background: var(--card-back-dark); 
+            border: 3px solid var(--gold); 
+            transform: rotate(2deg); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+        }
+        #deck-area::before, #deck-area::after {
+            content: ''; position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; border-radius: 6px;
+            background: #303030;
+        }
+        #deck-area::before { transform: translate(-3px, -3px); z-index: -1; box-shadow: 0 3px 5px rgba(0,0,0,0.4); }
+        #deck-area::after { transform: translate(3px, 3px); z-index: -2; background: #252525; box-shadow: 0 5px 8px rgba(0,0,0,0.6); }
+        #deck-area span { z-index: 1; font-family: 'Cinzel', serif; font-weight: 700; }
+
+        /* ANIMASYON STİLLERİ */
+        .animated-card {
+            position: fixed; z-index: 900;
+            transition: transform 0.4s cubic-bezier(0.3, 0.7, 0.4, 1.1), opacity 0.4s ease-out;
+            will-change: transform, opacity;
+        }
+
+        /* LOG: alt-sol, zamanla kaybolur */
+        #log-area {
+            position: absolute; bottom: 16px; left: 16px;
+            width: 240px; max-width: 35%; padding: 8px 10px;
+            background: rgba(0,0,0,0.45); border-radius: 8px;
+            border: 2px solid rgba(212,175,55,0.12); color: var(--parchment);
+            font-size: 13px; text-align: left; box-shadow: 2px 4px 10px rgba(0,0,0,0.6);
+            opacity: 0; transition: opacity 0.4s ease; z-index: 60;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        CROWN PRINCE
+    </div>
+
+    <div id="main-menu" class="game-menu hidden">
+        <h1 id="menu-title">CROWN PRINCE</h1>
+        <div id="menu-sub">Geleneksel Kral Seçme Kart Oyunu</div>
+        
+        <button class="btn-action" onclick="showGame()">OYUNA BAŞLA</button>
+        <button class="btn-action" onclick="showCatalog()">BİLGİ KARTLARI</button>
+        <button class="btn-action" onclick="showSettings()">AYARLAR (Yakında)</button>
+    </div>
+    
+    <div id="catalog-menu" class="game-menu hidden">
+        <h2 style="color:var(--gold); font-family:'Cinzel', serif;">📜 Kart Kataloğu</h2>
+        <div id="catalog-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px;">
+            </div>
+        <div id="catalog-detail">
+            <p style="font-style:italic;">Detayları görmek için listeden bir kart seçin.</p>
+        </div>
+        <button class="btn-action" onclick="showMenu()">GERİ DÖN</button>
+    </div>
+
+
+    <div id="game-board" class="hidden">
+        
+        <div class="stats" id="cpu-stats">
+            <span>🤴 RAKİP (VELİAHT)</span>
+            <span id="cpu-score">Hazine: 50</span>
+        </div>
+
+        <div id="cpu-hand" class="hand-area"></div>
+
+        <div id="table-center">
+
+            <div id="discard-pile">
+                <span id="discard-text">ATILAN KARTLAR</span>
+            </div>
+
+            <div id="deck-area">
+                <span id="deck-count">0</span>
+                <span>KART KALDI</span>
+            </div>
+
+            <div id="log-area"></div>
+        </div>
+
+        <div id="player-hand" class="hand-area"></div>
+
+        <div class="stats" id="player-stats">
+            <span>👑 SEN (VELİAHT)</span>
+            <span id="player-score">Hazine: 50</span>
+        </div>
+
+        <button class="btn-action" onclick="startGame()">YENİ OYUN BAŞLAT</button>
+    </div>
+
+<script>
+    // --- OYUN MANTIĞI VE KART KATALOĞU VERİSİ ---
+
+    const kartKatalogu = [
+        { isim: "Bakır", tur: "puan", deger: 5, renk: "type-puan", aciklama: "Küçük bir hazine getirir.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="26" fill="#e6b04a" stroke="#b27a2b" stroke-width="3"/><circle cx="32" cy="32" r="10" fill="#fff3d6" opacity="0.3"/></svg></div>`, tekrar: 30, calisma: "Hazine puanınıza +5 eklenir. (Çarpan varsa 2 katı.)" },
+        { isim: "Gümüş", tur: "puan", deger: 10, renk: "type-puan", aciklama: "Orta seviye bir hazine getirir.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="26" fill="#cfd6db" stroke="#8f9aa0" stroke-width="3"/><circle cx="32" cy="32" r="8" fill="#ffffff" opacity="0.2"/></svg></div>`, tekrar: 20, calisma: "Hazine puanınıza +10 eklenir. (Çarpan varsa 2 katı.)" },
+        { isim: "Altın", tur: "puan", deger: 15, renk: "type-puan", aciklama: "Büyük bir hazine getirir.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M8 44c8 8 20 12 24 12s16-4 24-12V20H8v24z" fill="#ffd66b" stroke="#c79b2a" stroke-width="2"/><circle cx="32" cy="28" r="6" fill="#fff" opacity="0.25"/></svg></div>`, tekrar: 10, calisma: "Hazine puanınıza +15 eklenir. (Çarpan varsa 2 katı.)" },
+        { isim: "Elmas", tur: "puan", deger: 30, renk: "type-puan", aciklama: "Çok değerli bir hazine getirir.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><polygon points="32,8 52,28 32,56 12,28" fill="#9ce0ff" stroke="#4ea4d6" stroke-width="2"/><polygon points="32,14 46,28 32,48 18,28" fill="#e6fbff" opacity="0.6"/></svg></div>`, tekrar: 5, calisma: "Hazine puanınıza +30 eklenir. (Çarpan varsa 2 katı.)" },
+        { isim: "Yakut", tur: "yakut", deger: 50, renk: "type-yakut", aciklama: "Büyük hazine sağlar ve sonraki 2 hamle çarpanı verir.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><polygon points="32,6 52,26 32,58 12,26" fill="#d84b4b" stroke="#8f1f1f" stroke-width="2"/><polygon points="32,14 46,28 32,48 18,28" fill="#ffbdbd" opacity="0.25"/></svg></div>`, tekrar: 1, calisma: "Hazineye +50 ekler. Sonraki 2 kartın Puan/Hasar değeri 2 katına çıkar." },
+        { isim: "Kalp Taşı", tur: "can", deger: 25, renk: "type-can", aciklama: "Hazineyi önemli ölçüde artırır.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M32 50s18-12 18-24-8-18-18-8c-10-10-18-2-18 8s18 24 18 24z" fill="#ff8da1" stroke="#b53b58" stroke-width="2"/></svg></div>`, tekrar: 5, calisma: "Hazine puanınıza +25 eklenir. (Çarpan varsa 2 katı.)" },
+        { isim: "Ateş Topu", tur: "ates", deger: -15, renk: "type-ates", aciklama: "Rakibe orta seviye hasar verir.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M34 8c-4 8 4 12 2 22 6-2 10 2 10 8-6-2-12 0-16 4-4-6-12-8-18-6 6-6 6-18 16-26 2 4 2 4 4 4z" fill="#ff7a2a" stroke="#b04510" stroke-width="2"/></svg></div>`, tekrar: 7, calisma: "Rakibin hazinesinden 15 puan düşer. (Çarpan varsa 2 katı. Kalkan engeller)." },
+        { isim: "Buz Mührü", tur: "buz", deger: -5, renk: "type-buz", aciklama: "Rakibe hafif hasar verir.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M32 6l4 18 18 4-18 4-4 18-4-18-18-4 18-4 4-18z" fill="#d0f0ff" stroke="#5aa7d6" stroke-width="2"/></svg></div>`, tekrar: 3, calisma: "Rakibin hazinesinden 5 puan düşer. (Çarpan varsa 2 katı. Kalkan engeller)." },
+        { isim: "Kalkan", tur: "kalkan", deger: 0, renk: "type-kalkan", aciklama: "Bir sonraki hasarı engeller.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M32 6l14 6v14c0 12-9 22-14 26-5-4-14-14-14-26V12l14-6z" fill="#dfe6ea" stroke="#6b6f73" stroke-width="2"/></svg></div>`, tekrar: 3, calisma: "Rakibin bir sonraki Hasar Kartını (Ateş/Buz) tamamen engeller." },
+        { isim: "Hırsız", tur: "hirsiz", deger: 0, renk: "type-hirsiz", aciklama: "Rakibin elinden bir kart çalar.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M20 18c0-6 6-10 12-10s12 4 12 10c0 4-3 6-6 6H26c-3 0-6-2-6-6z" fill="#333"/><path d="M18 44c6 6 20 8 28 0-8 2-20 2-28 0z" fill="#555"/></svg></div>`, tekrar: 3, calisma: "Rakibin elinden rastgele bir kartı alıp desteye karıştırır. (Rakibin elinde kart varsa)." }
+    ];
+
+    let playerHand = [], cpuHand = [], playerScore = 50, cpuScore = 50, turn = "player", anaDeste = [], gameActive = true, lastPlayedCard = null;
+    let playerMultiplierTurns = 0, cpuMultiplierTurns = 0, cpuHasShield = false, playerHasShield = false;
+    let isProcessingMove = false; 
+
+    function playSound(id) {
+        const audio = document.getElementById(id);
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(e => {/* sessiz hata */});
+        }
+    }
+
+    function createAndShuffleDeck() {
+        anaDeste = [];
+        kartKatalogu.forEach(kart => {
+            for (let i = 0; i < kart.tekrar; i++) anaDeste.push({...kart});
+        });
+        for (let i = anaDeste.length-1; i>0; i--) {
+            const j = Math.floor(Math.random()*(i+1));
+            [anaDeste[i], anaDeste[j]] = [anaDeste[j], anaDeste[i]];
+        }
+    }
+
+    function drawCard() {
+        return anaDeste.length ? anaDeste.pop() : null;
+    }
+
+    // --- EKRAN GEÇİŞ FONKSİYONLARI ---
+
+    function hideAllMenus() {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('game-board').classList.add('hidden');
+        document.getElementById('catalog-menu').classList.add('hidden');
+    }
+
+    function showMenu() {
+        hideAllMenus();
+        document.getElementById('main-menu').classList.remove('hidden');
+    }
+
+    function showGame(){ 
+        hideAllMenus();
+        document.getElementById('game-board').classList.remove('hidden'); 
+        startGame(); 
+    }
+
+    function showCatalog() {
+        hideAllMenus();
+        document.getElementById('catalog-menu').classList.remove('hidden');
+        renderCatalogList();
+        document.getElementById('catalog-detail').innerHTML = '<p style="font-style:italic;">Detayları görmek için listeden bir kart seçin.</p>';
+    }
+
+    function showSettings() {
+        // Şu an için sadece log mesajı veriyoruz.
+        log("Ayarlar Menüsü yakında eklenecektir!");
+    }
+
+
+    // YENİ: Katalog Listesini Hazırla ve Tıklama Fonksiyonu
+    function renderCatalogList() {
+        const listEl = document.getElementById('catalog-list');
+        listEl.innerHTML = '';
+        kartKatalogu.forEach((card) => {
+            const div = document.createElement('div');
+            div.className = 'card-list-item';
+            div.innerText = `${card.isim} (${card.tur.toUpperCase()})`;
+            div.onclick = () => showCardDetail(card);
+            listEl.appendChild(div);
+        });
+    }
+
+    // YENİ: Kart Detayını Göster
+    function showCardDetail(card) {
+        const detailEl = document.getElementById('catalog-detail');
+        detailEl.innerHTML = `
+            <div class="card-detail">
+                <strong>Kart Adı:</strong> <span class="detail-value">${card.isim}</span><br>
+                <strong>Türü:</strong> <span class="detail-value">${card.tur.toUpperCase()}</span><br>
+                <strong>Etki Değeri:</strong> <span class="detail-value">${card.deger > 0 ? '+' : ''}${card.deger} Hazine</span><br>
+                <strong>Açıklama:</strong> <span class="detail-value">${card.aciklama}</span><br>
+                ---<br>
+                <strong>Nasıl Çalışır:</strong> <span class="detail-value">${card.calisma}</span>
+            </div>
+        `;
+    }
+
+    // --- OYUN AKIŞ MANTIĞI ---
+
+    function startGame(){
+        createAndShuffleDeck();
+        playerScore = 50; cpuScore = 50;
+        playerHand=[]; cpuHand=[]; turn="player"; gameActive=true; lastPlayedCard=null;
+        playerMultiplierTurns = cpuMultiplierTurns = 0; cpuHasShield = playerHasShield = false;
+        isProcessingMove = false;
+        
+        for(let i=0;i<3;i++){ 
+            const pCard = drawCard(); if(pCard) playerHand.push(pCard);
+            const cCard = drawCard(); if(cCard) cpuHand.push(cCard);
+        }
+
+        renderHands(); renderCenterArea(); updateUI(true); log("Oyun Başladı! Sıra sende.");
+    }
+
+    function checkZeroScore(){
+        if (playerScore <= 0 || cpuScore <= 0) {
+            if (gameActive) {
+                const winner = playerScore > cpuScore ? 'Sen' : 'CPU';
+                endGame(`ANI ÖLÜM! Rakibin hazinesini bitirerek ${winner} kazandı!`, true);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function applyMultiplier(score, multiplierTurns){ return multiplierTurns>0 ? score*2 : score; }
+
+    function drawNewCardAnimated(owner) {
+        return new Promise(resolve => {
+            const newCard = drawCard();
+            if (!newCard) { resolve(null); return; }
+
+            const isPlayer = owner === 'player';
+            const deckArea = document.getElementById("deck-area");
+            const targetHandArea = isPlayer ? document.getElementById("player-hand") : document.getElementById("cpu-hand");
+            const deckRect = deckArea.getBoundingClientRect();
+            
+            const animCard = document.createElement("div");
+            animCard.className = `card animated-card card-back`; 
+            animCard.innerHTML = `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="52" height="44" rx="6" fill="#6b6b6b"/></svg></div><div style="font-weight:700; color:var(--text-light);">DESTE KARTI</div>`;
+            
+            animCard.style.left = deckRect.left + deckRect.width / 2 - 60 + 'px';
+            animCard.style.top = deckRect.top + deckRect.height / 2 - 85 + 'px';
+            animCard.style.transform = 'translateY(0) scale(1.0) rotate(2deg)';
+            document.body.appendChild(animCard);
+
+            const targetX = targetHandArea.getBoundingClientRect().left + Math.random() * (targetHandArea.offsetWidth - 120);
+            const targetY = isPlayer ? targetHandArea.getBoundingClientRect().top : targetHandArea.getBoundingClientRect().top + targetHandArea.offsetHeight - 170;
+
+            requestAnimationFrame(() => {
+                const translateX = targetX - (deckRect.left + deckRect.width/2 - 60);
+                const translateY = targetY - (deckRect.top + deckRect.height/2 - 85);
+
+                animCard.style.transform = `translate(${translateX}px, ${translateY}px) scale(1.0) rotate(5deg)`;
+                animCard.style.opacity = '1';
+            });
+
+            setTimeout(() => {
+                animCard.remove();
+                if (isPlayer) playerHand.push(newCard); else cpuHand.push(newCard);
+                renderHands(); 
+                resolve(newCard);
+            }, 400);
+        });
+    }
+
+    async function playCard(index, owner){
+        if (!gameActive || turn !== owner || isProcessingMove) return;
+        isProcessingMove = true;
+
+        let isPlayer = owner === 'player';
+        let currentHand = isPlayer ? playerHand : cpuHand;
+        let opponentHand = isPlayer ? cpuHand : playerHand;
+        let oldPlayerScore = playerScore, oldCpuScore = cpuScore;
+
+        const card = currentHand[index];
+        const cardElement = isPlayer ? document.getElementById("player-hand").children[index] : document.getElementById("cpu-hand").children[index];
+        
+        // --- Kart Oynama Animasyonu Başlangıcı ---
+        const discardPile = document.getElementById("discard-pile");
+        const discardRect = discardPile.getBoundingClientRect();
+        const cardRect = cardElement.getBoundingClientRect();
+        
+        const cloneCard = cardElement.cloneNode(true);
+        cloneCard.classList.add('animated-card');
+        cloneCard.classList.remove('card-back');
+
+        cloneCard.style.left = cardRect.left + 'px';
+        cloneCard.style.top = cardRect.top + 'px';
+        document.body.appendChild(cloneCard);
+        cardElement.style.opacity = '0';
+
+        const targetX = discardRect.left + discardRect.width / 2 - cardRect.width / 2;
+        const targetY = discardRect.top + discardRect.height / 2 - cardRect.height / 2;
+        
+        requestAnimationFrame(() => {
+            const translateX = targetX - cardRect.left;
+            const translateY = targetY - cardRect.top;
+            cloneCard.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.95) rotate(5deg)`;
+            cloneCard.style.opacity = '1';
+        });
+
+        await new Promise(r => setTimeout(r, 400));
+        
+        currentHand.splice(index,1);
+        cardElement.remove();
+        lastPlayedCard = card;
+        playSound('sound-play');
+        cloneCard.remove();
+        
+        // --- Kart Oynama Animasyonu Bitişi ---
+
+        let finalValue = card.deger;
+        let logMessage = `${isPlayer ? 'Sen' : 'CPU'} ${card.isim} oynadı! `;
+
+        // --- Kartın Etkisini Uygula ---
+        if (card.tur === "puan" || card.tur === "can" || card.tur === "yakut"){
+            finalValue = applyMultiplier(finalValue, isPlayer ? playerMultiplierTurns : cpuMultiplierTurns);
+            if (isPlayer) playerScore += finalValue; else cpuScore += finalValue;
+            logMessage += `(+${finalValue} Hazine)`;
+            if (card.tur === "yakut"){
+                if (isPlayer) playerMultiplierTurns += 2; else cpuMultiplierTurns += 2;
+                logMessage += ` 💥 (SONRAKİ 2 HAMLE 2X)`;
+            }
+        } else if (card.tur === "ates" || card.tur === "buz"){
+            let isOpponentShielded = isPlayer ? cpuHasShield : playerHasShield;
+            if (isOpponentShielded){
+                logMessage += ` 🛡️ (Kalkan tarafından engellendi!)`;
+                if (isPlayer) cpuHasShield = false; else playerHasShield = false;
+            } else {
+                finalValue = applyMultiplier(finalValue, isPlayer ? playerMultiplierTurns : cpuMultiplierTurns);
+                if (isPlayer) cpuScore += finalValue; else playerScore += finalValue;
+                logMessage += ` (${finalValue} Hasar)`;
+            }
+        } else if (card.tur === "kalkan"){
+            if (isPlayer) playerHasShield = true; else cpuHasShield = true;
+            logMessage += ` (Kalkan Aktif!)`;
+        } else if (card.tur === "hirsiz"){
+            if (opponentHand.length > 0){
+                const stolenIndex = Math.floor(Math.random()*opponentHand.length);
+                const stolenCard = opponentHand.splice(stolenIndex,1)[0];
+                currentHand.push(stolenCard); // Çalınan kartı direk ele ekledim.
+                logMessage += ` (Rakip kartı çalındı ve desteye karıştırıldı!)`; // Deste yerine direk eline eklendiği varsayılmıştır.
+            } else { logMessage += ` (Rakibin eli boş.)`; }
+        }
+
+        if (card.tur !== "kalkan" && card.tur !== "hirsiz"){
+            if (isPlayer && playerMultiplierTurns>0) playerMultiplierTurns--;
+            if (!isPlayer && cpuMultiplierTurns>0) cpuMultiplierTurns--;
+        }
+
+        updateUI(false, oldPlayerScore, oldCpuScore);
+        log(logMessage);
+
+        if (checkZeroScore()) { isProcessingMove = false; return; }
+        
+        await drawNewCardAnimated(owner);
+        renderCenterArea();
+
+        if (anaDeste.length === 0) {
+            endGame("DESTEDE KART BİTTİ!", false);
+            isProcessingMove = false;
+            return;
+        }
+
+        if (isPlayer){ 
+            turn = "cpu"; 
+            isProcessingMove = false;
+            setTimeout(cpuTurn, 900); 
+        } else { 
+            turn = "player"; 
+            isProcessingMove = false;
+            log("Sıra sende!"); 
+        }
+    }
+
+    function cpuTurn(){
+        if (!gameActive || cpuHand.length===0){ turn="player"; isProcessingMove=false; log("Sıra sende!"); return; }
+        
+        let idx = -1;
+        const lethal = cpuHand.findIndex(c => c.tur==="ates" && playerScore <= Math.abs(applyMultiplier(c.deger, cpuMultiplierTurns)));
+        if (lethal !== -1) idx = lethal;
+        
+        if (idx === -1){
+            const y = cpuHand.findIndex(c=>c.tur==="yakut");
+            if (y !== -1) idx = y;
+        }
+        if (idx === -1 && !cpuHasShield && cpuScore < 20){
+            const s = cpuHand.findIndex(c=>c.tur==="kalkan");
+            if (s !== -1) idx = s;
+        }
+        if (idx === -1 && cpuScore < 60){
+            const h = cpuHand.findIndex(c=>c.tur==="puan" && c.deger >= 15);
+            if (h !== -1) idx = h;
+        }
+        if (idx === -1 && playerHand.length>0 && playerScore > 70){
+            const t = cpuHand.findIndex(c=>c.tur==="hirsiz");
+            if (t !== -1) idx = t;
+        }
+        
+        if (idx === -1) idx = Math.floor(Math.random()*cpuHand.length);
+        playCard(idx, 'cpu');
+    }
+
+    function endGame(message, isSudden){
+        if (!gameActive) return;
+        gameActive = false;
+        isProcessingMove = false;
+        playSound('sound-win');
+        let result = "";
+        if (isSudden) result = message;
+        else {
+            if (playerScore > cpuScore) result = "🏆 HAZİNE YARIŞINI KAZANDIN! 🏆";
+            else if (cpuScore > playerScore) result = "💀 HAZİNE YARIŞINI KAYBETTİN...";
+            else result = "🤝 BERABERE!";
+        }
+        log(result);
+        setTimeout(()=>alert(result), 120);
+    }
+
+    function renderCenterArea(){
+        const discardPile = document.getElementById("discard-pile");
+        discardPile.innerHTML = '';
+        if (lastPlayedCard){
+            const div = document.createElement("div");
+            div.className = `card discarded-card ${lastPlayedCard.renk}`;
+            div.innerHTML = `${lastPlayedCard.img}<div style="font-size:13px;margin-top:6px;font-weight:700;">${lastPlayedCard.isim}</div>`; 
+            discardPile.appendChild(div);
+        } else {
+            discardPile.innerHTML = `<span id="discard-text">ATILAN KARTLAR</span>`;
+        }
+        document.getElementById("deck-count").innerText = anaDeste.length;
+    }
+
+    function renderHands(){
+        const pArea = document.getElementById("player-hand");
+        const cArea = document.getElementById("cpu-hand");
+        pArea.innerHTML = ""; cArea.innerHTML = "";
+
+        playerHand.forEach((card, index) => {
+            const div = document.createElement("div");
+            div.className = `card ${card.renk}`;
+            div.innerHTML = `${card.img}<div style="font-weight:700;">${card.isim}</div><div style="font-size:12px;">${card.deger>0? '+'+card.deger : card.deger} Hazine</div>`;
+            div.onclick = () => playCard(index, 'player');
+            pArea.appendChild(div);
+        });
+
+        cpuHand.forEach(() => {
+            const div = document.createElement("div");
+            div.className = "card card-back"; 
+            div.innerHTML = `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="52" height="44" rx="6" fill="#6b6b6b"/></svg></div><div style="font-weight:700; color:var(--text-light);">RAKİP KARTI</div>`;
+            cArea.appendChild(div);
+        });
+    }
+
+    function updateUI(skip=false, oldP=0, oldC=0){
+        const pStats = document.getElementById("player-stats");
+        const cStats = document.getElementById("cpu-stats");
+        pStats.classList.remove('score-flash-red','score-flash-green');
+        cStats.classList.remove('score-flash-red','score-flash-green');
+
+        let pMultiplierHtml = playerMultiplierTurns>0 ? `<div class="multiplier">2X (${playerMultiplierTurns})</div>` : '';
+        let cMultiplierHtml = cpuMultiplierTurns>0 ? `<div class="multiplier">2X (${cpuMultiplierTurns})</div>` : '';
+        if (playerHasShield) pMultiplierHtml += `<div class="shield-icon">🛡️</div>`;
+        if (cpuHasShield) cMultiplierHtml += `<div class="shield-icon">🛡️</div>`;
+
+        pStats.innerHTML = `<span>👑 SEN (VELİAHT)</span><span id="player-score">Hazine: ${playerScore}</span>${pMultiplierHtml}`;
+        cStats.innerHTML = `<span>🤴 RAKİP (VELİAHT)</span><span id="cpu-score">Hazine: ${cpuScore}</span>${cMultiplierHtml}`;
+
+        if (!skip){
+            if (playerScore < oldP) { pStats.classList.add('score-flash-red'); playSound('sound-damage'); }
+            else if (playerScore > oldP) { pStats.classList.add('score-flash-green'); playSound('sound-score'); }
+            if (cpuScore < oldC) { cStats.classList.add('score-flash-red'); playSound('sound-damage'); }
+            else if (cpuScore > oldC) { cStats.classList.add('score-flash-green'); playSound('sound-score'); }
+        }
+
+        setTimeout(()=>{ pStats.classList.remove('score-flash-red','score-flash-green'); cStats.classList.remove('score-flash-red','score-flash-green'); }, 600);
+    }
+
+    let logTimeout = null;
+    function log(msg){
+        const el = document.getElementById("log-area");
+        el.innerText = msg;
+        el.style.opacity = '1';
+        if (logTimeout) clearTimeout(logTimeout);
+        logTimeout = setTimeout(()=>{ el.style.opacity = '0'; }, 3000);
+    }
+
+    // --- GİRİŞ ANİMASYONU BAŞLATICI ---
+    document.addEventListener('DOMContentLoaded', ()=>{
+        const splash = document.getElementById('splash-screen');
+        
+        // 1. Splash ekranı görünür yap
+        splash.style.opacity = '1';
+
+        // 2. 2 saniye bekle, sonra kaybol (fade out) ve menüyü göster
+        setTimeout(() => {
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                showMenu(); // Ana menüyü göster
+                log("Oyun yüklendi. Hazır!");
+            }, 1000); // Fade-out süresi kadar bekle
+        }, 2000); // 2 saniye bekleme süresi
+
+    });
+</script>
+</body>
+</html>
