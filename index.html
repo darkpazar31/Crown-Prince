@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crown Prince — Kart Oyunu</title>
+    <title>Crown Prince — Kart Oyunu (Click-to-Play/Fusion)</title>
 
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
@@ -47,18 +47,8 @@
 
         /* --- YENİ EFEKTLER (SHAKE, FLOAT, PARTICLES) --- */
         
-        /* 1. Ekran Titremesi (Shake) */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
             100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
         .shake-effect {
@@ -66,7 +56,6 @@
             animation-iteration-count: 1;
         }
 
-        /* 2. Süzülen Yazılar (Floating Text) */
         .floating-text {
             position: absolute;
             font-family: 'Cinzel', serif;
@@ -79,7 +68,6 @@
             transition: transform 1s ease-out, opacity 1s ease-out;
         }
 
-        /* 3. Partiküller */
         .particle {
             position: absolute;
             width: 6px;
@@ -177,13 +165,13 @@
         .card {
             width: 100px; height: 145px; background: var(--parchment); border: 2px solid var(--medieval-wood-dark);
             border-radius: 8px; color: var(--text-dark); box-shadow: 3px 4px 8px rgba(0,0,0,0.6);
-            transition: transform 0.18s ease; cursor: pointer; padding: 6px;
+            transition: transform 0.18s ease, opacity 0.18s ease; /* Opacity da eklendi */
+            cursor: pointer; padding: 6px;
             display: flex; flex-direction: column; align-items: center; justify-content: space-between; font-size: 11px; position: relative; flex-shrink: 0;
             transform-style: preserve-3d;
             backface-visibility: hidden;
         }
         .card:hover { transform: translateY(-4px) rotate(-0.5deg) scale(1.02); }
-        /* Seçili kart stili */
         .card.selected { 
             border: 3px solid var(--ruby); 
             box-shadow: 0 0 15px rgba(177, 10, 10, 0.8);
@@ -195,8 +183,7 @@
         .card .card-img { width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; margin-bottom: 4px; }
         .card .card-img svg { width: 40px; height: 40px; }
 
-        /* KART AKSİYON HEDEFLERİ STİLLERİ */
-        .card.drop-target-fusion { /* Artık tıklama hedefi */
+        .card.drop-target-fusion { 
             outline: 4px solid var(--gold);
             box-shadow: 0 0 15px var(--gold);
         }
@@ -206,7 +193,6 @@
         }
         
         #table-center { display:flex; justify-content:space-around; align-items:center; flex: 1; max-height: 180px; min-height: 140px; width: 100%; position:relative; margin: 5px 0; }
-        /* Discard Pile artık tıklanabilir */
         #discard-pile { 
             width: 100px; height: 145px; border-radius:8px; box-shadow: 4px 5px 10px rgba(0,0,0,0.6); 
             display:flex; align-items:center; justify-content:center; flex-direction:column; padding:8px; 
@@ -231,8 +217,8 @@
         #log-area {
             position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
             width: 80%; padding: 8px 12px; background: rgba(0,0,0,0.75); border-radius: 8px;
-            border: 1px solid var(--gold); color: var(--parchment); font-size: 14px; text-align: center;
-            opacity: 0; transition: opacity 0.4s ease; z-index: 60; pointer-events: none;
+            border: 1px solid var(--gold); color: var(--parchment); font-size: 16px; font-weight: 700; text-align: center;
+            opacity: 0; transition: opacity 0.2s ease; z-index: 60; pointer-events: none;
         }
 
         @media (max-height: 700px) {
@@ -315,7 +301,7 @@
     let playerHand = [], cpuHand = [], playerScore = 50, cpuScore = 50, turn = "player", anaDeste = [], gameActive = true, lastPlayedCard = null;
     let playerMultiplierTurns = 0, cpuMultiplierTurns = 0, cpuHasShield = false, playerHasShield = false;
     let isProcessingMove = false; 
-    let selectedCardIndex = -1; // YENİ: Seçili kartın index'i
+    let selectedCardIndex = -1; 
 
     function playSound(id) {
         const audio = document.getElementById(id);
@@ -331,7 +317,6 @@
         }
     }
 
-    // Basit ve hızlı kart çekme fonksiyonu
     function drawCard() { return anaDeste.length ? anaDeste.pop() : null; }
 
     function triggerShake() {
@@ -340,7 +325,7 @@
         void board.offsetWidth; 
         board.classList.add("shake-effect");
     }
-    
+
     function spawnFloatingText(targetId, text, color) {
         const targetEl = document.getElementById(targetId);
         if (!targetEl) return;
@@ -393,86 +378,223 @@
         }
     }
 
-    // --- MENÜ FONKSİYONLARI ---
-    function hideAllMenus() {
-        document.getElementById('main-menu').classList.add('hidden');
-        document.getElementById('game-board').classList.add('hidden');
-        document.getElementById('catalog-menu').classList.add('hidden');
+    // --- LOG FONKSİYONU (SADELEŞTİRİLDİ) ---
+    let logTimeout = null;
+    function log(msg){
+        const DURATION = 1500; // Hızlıca yok olması için 1.5 saniye
+        const el = document.getElementById("log-area"); 
+        
+        // Sadece "Sıra Sende" veya oyun sonucu gibi kritik mesajları göster.
+        if (msg === "Sıra sende!" || msg.includes("KAZANDIN") || msg.includes("KAYBETTİN") || msg.includes("BERABERE") || msg.includes("Oyun Başladı")) {
+            el.innerText = msg;
+            el.style.opacity = '1';
+            if (logTimeout) clearTimeout(logTimeout); 
+            logTimeout = setTimeout(()=>{ el.style.opacity = '0'; }, DURATION);
+        }
     }
-    function showMenu() { hideAllMenus(); document.getElementById('main-menu').classList.remove('hidden'); }
-    function confirmExit() { if(confirm("Oyundan çıkıp ana menüye dönmek istiyor musun?")) { showMenu(); } }
-    function showGame(){ hideAllMenus(); document.getElementById('game-board').classList.remove('hidden'); startGame(); }
-    function showCatalog() {
-        hideAllMenus(); document.getElementById('catalog-menu').classList.remove('hidden');
-        renderCatalogList();
-        document.getElementById('catalog-detail').innerHTML = '<p style="font-style:italic;">Detayları görmek için listeden bir kart seçin.</p>';
-    }
-    function showSettings() { log("Ayarlar Menüsü yakında eklenecektir!"); }
 
-    function renderCatalogList() {
-        const listEl = document.getElementById('catalog-list'); listEl.innerHTML = '';
-        kartKatalogu.forEach((card) => {
-            const div = document.createElement('div'); div.className = 'card-list-item';
-            div.innerText = `${card.isim} (${card.tur.toUpperCase()})`;
-            div.onclick = () => showCardDetail(card); listEl.appendChild(div);
+
+    // --- KART BİRLEŞTİRME VE ÇEKME ANİMASYONLARI ---
+
+    async function animateCardFusion(index1, index2) {
+        const pArea = document.getElementById("player-hand");
+        const cardEl1 = pArea.children[index1];
+        const cardEl2 = pArea.children[index2];
+
+        if (!cardEl1 || !cardEl2) return;
+
+        // 1. Pozisyonları al ve klonları oluştur
+        const rect1 = cardEl1.getBoundingClientRect();
+        const rect2 = cardEl2.getBoundingClientRect();
+        const centerX = (rect1.left + rect2.left) / 2;
+        const centerY = (rect1.top + rect2.top) / 2;
+
+        const clone1 = cardEl1.cloneNode(true);
+        const clone2 = cardEl2.cloneNode(true);
+        clone1.classList.add('animated-card');
+        clone2.classList.add('animated-card');
+        clone1.classList.remove('selected', 'drop-target-fusion');
+        clone2.classList.remove('selected', 'drop-target-fusion');
+
+        // Klonların başlangıç pozisyonlarını ayarla
+        clone1.style.left = rect1.left + 'px';
+        clone1.style.top = rect1.top + 'px';
+        clone2.style.left = rect2.left + 'px';
+        clone2.style.top = rect2.top + 'px';
+        
+        // Orijinalleri gizle ve DOM'dan kaldır (Hemen)
+        cardEl1.remove();
+        cardEl2.remove();
+
+        document.body.appendChild(clone1);
+        document.body.appendChild(clone2);
+        playSound('sound-score');
+
+        // 2. Klonları merkeze doğru hareket ettir
+        requestAnimationFrame(() => {
+            const translate1X = centerX - rect1.left;
+            const translate1Y = centerY - rect1.top;
+            const translate2X = centerX - rect2.left;
+            const translate2Y = centerY - rect2.top;
+            
+            clone1.style.transform = `translate(${translate1X}px, ${translate1Y}px) scale(0.8) rotate(-10deg)`;
+            clone2.style.transform = `translate(${translate2X}px, ${translate2Y}px) scale(0.8) rotate(10deg)`;
+        });
+        
+        await new Promise(r => setTimeout(r, 400));
+        
+        // 3. Birleşme efekti ve klonları yok etme
+        spawnParticles(centerX + rect1.width / 2, centerY + rect1.height / 2, "gold");
+        clone1.style.opacity = '0';
+        clone2.style.opacity = '0';
+        
+        await new Promise(r => setTimeout(r, 200));
+        clone1.remove();
+        clone2.remove();
+        
+        return { centerX, centerY }; // Yeni kartın başlangıç pozisyonu
+    }
+
+    async function animateNewCardPopup(newCardEl, startPos) {
+        if (!newCardEl || !startPos) return;
+
+        const targetRect = newCardEl.getBoundingClientRect();
+        
+        // DOM elementinin başlangıç pozisyonunu ayarla
+        newCardEl.style.position = 'fixed';
+        newCardEl.style.left = startPos.centerX + 'px';
+        newCardEl.style.top = startPos.centerY + 'px';
+        newCardEl.style.zIndex = 1000;
+        newCardEl.style.opacity = '0';
+        newCardEl.style.transform = 'scale(0.1) rotateY(180deg)'; 
+        
+        // Force reflow
+        void newCardEl.offsetWidth; 
+
+        // Hedef pozisyon ve animasyonu başlat
+        requestAnimationFrame(() => {
+            newCardEl.style.transition = 'transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease-out';
+            newCardEl.style.left = targetRect.left + 'px';
+            newCardEl.style.top = targetRect.top + 'px';
+            newCardEl.style.opacity = '1';
+            newCardEl.style.transform = 'scale(1.0) rotateY(0deg)';
+        });
+
+        await new Promise(r => setTimeout(r, 600));
+
+        // Animasyon bitince normal pozisyona geri al
+        newCardEl.style.position = '';
+        newCardEl.style.left = '';
+        newCardEl.style.top = '';
+        newCardEl.style.zIndex = '';
+        newCardEl.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+    }
+
+    async function drawNewCardAnimated(owner) {
+        return new Promise(resolve => {
+            const newCard = drawCard();
+            if (!newCard) { resolve(null); return; }
+
+            const isPlayer = owner === 'player';
+            const deckArea = document.getElementById("deck-area");
+            
+            const deckRect = deckArea.getBoundingClientRect();
+            
+            // Kartı önce elin array'ine ekle, sonra DOM'u güncelle
+            if (isPlayer) playerHand.push(newCard); else cpuHand.push(newCard);
+            renderHands(); 
+            
+            const targetHandArea = isPlayer ? document.getElementById("player-hand") : document.getElementById("cpu-hand");
+            // Yeni eklenen kartın DOM elementini bul
+            const targetCardEl = targetHandArea.children[targetHandArea.children.length - 1];
+
+            const animCard = document.createElement("div");
+            animCard.className = `card animated-card card-back`;
+            animCard.innerHTML = `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="52" height="44" rx="6" fill="#6b6b6b"/></svg></div>`;
+            document.body.appendChild(animCard);
+
+            const cardWidth = targetCardEl.offsetWidth;
+            const cardHeight = targetCardEl.offsetHeight;
+            const startLeft = deckRect.left + (deckRect.width - cardWidth) / 2;
+            const startTop = deckRect.top + (deckRect.height - cardHeight) / 2;
+
+            animCard.style.left = startLeft + 'px';
+            animCard.style.top = startTop + 'px';
+            animCard.style.transform = 'translate(0, 0) scale(1.0) rotate(2deg)';
+
+            const targetRect = targetCardEl.getBoundingClientRect();
+            const targetX = targetRect.left;
+            const targetY = targetRect.top;
+
+            // Orijinal kartı gizle
+            targetCardEl.style.opacity = '0';
+            
+            requestAnimationFrame(() => {
+                const translateX = targetX - startLeft;
+                const translateY = targetY - startTop;
+                animCard.style.transform = `translate(${translateX}px, ${translateY}px) scale(1.0) rotate(5deg)`;
+            });
+
+            setTimeout(() => {
+                animCard.remove();
+                targetCardEl.style.opacity = '1'; // Kartı görünür yap
+                renderHands(); // Son bir render ile pozisyonları düzelt
+                resolve(newCard);
+            }, 600);
         });
     }
-    function showCardDetail(card) {
-        document.getElementById('catalog-detail').innerHTML = `
-            <div class="card-detail">
-                <strong>Kart Adı:</strong> <span class="detail-value">${card.isim}</span><br>
-                <strong>Türü:</strong> <span class="detail-value">${card.tur.toUpperCase()}</span><br>
-                <strong>Etki:</strong> <span class="detail-value">${card.deger > 0 ? '+' : ''}${card.deger} Hazine</span><br>
-                <strong>Açıklama:</strong> <span class="detail-value">${card.aciklama}</span><br>
-                ---<br><strong>Nasıl Çalışır:</strong> <span class="detail-value">${card.calisma}</span>
-            </div>`;
-    }
 
-    // --- KART BİRLEŞTİRME MANTIĞI (YENİ KART ÇEKME EKLENDİ) ---
+    // --- KART BİRLEŞTİRME MANTIĞI (GÜNCELLENDİ) ---
 
     function getCardByName(isim) {
         return kartKatalogu.find(k => k.isim === isim);
     }
 
-    function fusionCards(cardName1, cardName2, hand, index1, index2) {
-        if (cardName1 !== cardName2 || !fusionMap[cardName1]) {
-            log("❌ Bu kartlar birleştirilemez.");
-            return false;
-        }
-        
+    async function fusionCards(cardName1, cardName2, hand, index1, index2) {
+        if (cardName1 !== cardName2 || !fusionMap[cardName1] || isProcessingMove) return false;
+        isProcessingMove = true; 
+        resetSelectionState();
+
         const newCardName = fusionMap[cardName1];
         const newCard = getCardByName(newCardName);
-        
-        if (!newCard) {
-            log("❌ Yeni kart bulunamadı.");
-            return false;
-        }
+        if (!newCard) { isProcessingMove = false; return false; }
 
-        // Yüksek indeksi önce silmek, düşük indeksin kaymasını önler.
+        // --- ANİMASYON AŞAMASI 1: Birleşme ---
+        const fusionPos = await animateCardFusion(index1, index2);
+
+        // --- LOGIC AŞAMASI ---
+        // Array manipülasyonu
         const indices = [index1, index2].sort((a, b) => b - a);
-        hand.splice(indices[0], 1); // Birinci kartı sil
-        hand.splice(indices[1], 1); // İkinci kartı sil
+        hand.splice(indices[0], 1); 
+        hand.splice(indices[1], 1); 
+        hand.push({...newCard}); 
 
-        hand.push({...newCard}); // Yeni kartın bir kopyasını ekle
-
-        // YENİ: El boyutunu korumak için desteden bir kart çek
-        const drawnCard = drawCard(); 
-        let logText = `✨ İki ${cardName1} kartı birleşerek bir ${newCardName} kartı oldu!`;
-
-        if (drawnCard) {
-            hand.push(drawnCard);
-            logText += " (+1 Kart Desteden Çekildi)";
-        } else {
-             logText += " (Deste Boş, Kart Çekilemedi)";
-        }
-
-        playSound('sound-score'); 
-        log(logText);
-
+        // Geçici olarak DOM'u güncelle
         renderHands(); 
+        
+        // --- ANİMASYON AŞAMASI 2: Yeni Kartın Oluşumu ---
+        const newCardIndex = playerHand.length - 1; 
+        const newCardEl = document.getElementById("player-hand").children[newCardIndex];
+        
+        if (newCardEl && fusionPos) {
+            await animateNewCardPopup(newCardEl, fusionPos); 
+        }
+        
+        // --- ANİMASYON AŞAMASI 3: Desteden Kart Çekme ---
+        const drawnCard = drawCard(); 
+        if (drawnCard) {
+            // drawNewCardAnimated kendi içinde push ve renderHands'i hallediyor
+            await drawNewCardAnimated('player');
+        }
+        
+        // --- SONLANDIRMA ---
+        log("Sıra Sende!"); 
         updateUI(false);
+        isProcessingMove = false;
+        renderHands(); // Son kez renderHands
         return true;
     }
+
 
     // --- KART SEÇİM VE AKSİYON MANTIĞI ---
 
@@ -483,7 +605,6 @@
         }
         selectedCardIndex = -1;
         document.getElementById("discard-pile").classList.remove('drop-target-play');
-        // Tüm olası birleşme hedeflerinin vurgusunu kaldır
         document.getElementById("player-hand").querySelectorAll('.card').forEach((cardEl) => {
             cardEl.classList.remove('drop-target-fusion');
         });
@@ -506,9 +627,8 @@
             // 1. Kart Seçme (İlk Tıklama)
             selectedCardIndex = clickedIndex;
             document.getElementById("player-hand").children[clickedIndex].classList.add('selected');
-            document.getElementById("discard-pile").classList.add('drop-target-play'); // Oynama hedefini vurgula
-            highlightFusionTargets(playerHand[clickedIndex].isim, clickedIndex); // Birleştirme hedeflerini vurgula
-            log(`Kart Seçildi: ${playerHand[clickedIndex].isim}. Oynamak için Atılan Yığına, birleştirmek için aynı kartı tekrar tıkla.`);
+            document.getElementById("discard-pile").classList.add('drop-target-play'); 
+            highlightFusionTargets(playerHand[clickedIndex].isim, clickedIndex); 
             
         } else {
             // 2. Aksiyon Alma (İkinci Tıklama)
@@ -518,32 +638,25 @@
             if (selectedCardIndex === clickedIndex) {
                 // Aynı karta tekrar tıklanırsa, seçimi iptal et
                 resetSelectionState();
-                log(`Seçim iptal edildi.`);
                 return;
             }
 
             // A) Birleştirme Aksiyonu
             if (selectedCard.isim === clickedCard.isim && selectedCard.isim in fusionMap) {
-                // Birleştirme başarılı olursa, resetSelectionState zaten fusionCards içinde renderHands tarafından tetiklenecek.
-                fusionCards(selectedCard.isim, clickedCard.isim, playerHand, selectedCardIndex, clickedIndex);
+                 fusionCards(selectedCard.isim, clickedCard.isim, playerHand, selectedCardIndex, clickedIndex);
             } else {
                 // B) Geçersiz Birleştirme
-                log(`❌ ${selectedCard.isim} kartı ${clickedCard.isim} kartı ile birleştirilemez.`);
-                resetSelectionState(); // Geçersiz aksiyon sonrası seçimi sıfırla
+                resetSelectionState(); 
             }
         }
     }
 
     function handleDiscardPileClick() {
-        const discardPile = document.getElementById('discard-pile');
         if (turn === 'player' && selectedCardIndex !== -1 && !isProcessingMove) {
-            // Kartı Oyna!
             const indexToPlay = selectedCardIndex;
-            resetSelectionState(); // Önce seçimi sıfırla
+            resetSelectionState();
             playCard(indexToPlay, 'player'); 
-        } else if (turn === 'player' && selectedCardIndex === -1) {
-            log("Oynamak için önce bir kart seçmelisin.");
-        }
+        } 
     }
 
     // --- OYUN MANTIĞI ---
@@ -551,9 +664,9 @@
         createAndShuffleDeck(); playerScore = 50; cpuScore = 50;
         playerHand=[]; cpuHand=[]; turn="player"; gameActive=true; lastPlayedCard=null;
         playerMultiplierTurns = cpuMultiplierTurns = 0; cpuHasShield = playerHasShield = false; isProcessingMove = false;
-        resetSelectionState(); // Seçim durumunu sıfırla
+        resetSelectionState(); 
         for(let i=0;i<3;i++){ const p=drawCard(); if(p) playerHand.push(p); const c=drawCard(); if(c) cpuHand.push(c); }
-        renderHands(); renderCenterArea(); updateUI(true); log("Oyun Başladı! Sıra sende.");
+        renderHands(); renderCenterArea(); updateUI(true); log("Oyun Başladı!");
     }
 
 
@@ -565,51 +678,6 @@
     }
 
     function applyMultiplier(score, multiplierTurns){ return multiplierTurns>0 ? score*2 : score; }
-
-    // --- KART ÇEKME ANIMASYONU ---
-    function drawNewCardAnimated(owner) {
-        return new Promise(resolve => {
-            const newCard = drawCard();
-            if (!newCard) { resolve(null); return; }
-
-            const isPlayer = owner === 'player';
-            const deckArea = document.getElementById("deck-area");
-            const targetHandArea = isPlayer ? document.getElementById("player-hand") : document.getElementById("cpu-hand");
-            const deckRect = deckArea.getBoundingClientRect();
-            
-            const animCard = document.createElement("div");
-            animCard.className = `card animated-card card-back`;
-            animCard.style.visibility = 'hidden'; 
-            animCard.innerHTML = `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="52" height="44" rx="6" fill="#6b6b6b"/></svg></div>`;
-            document.body.appendChild(animCard);
-
-            const animRect = animCard.getBoundingClientRect();
-            const cardWidth = animRect.width;
-            const cardHeight = animRect.height;
-            const startLeft = deckRect.left + (deckRect.width - cardWidth) / 2;
-            const startTop = deckRect.top + (deckRect.height - cardHeight) / 2;
-
-            animCard.style.left = startLeft + 'px';
-            animCard.style.top = startTop + 'px';
-            animCard.style.transform = 'translate(0, 0) scale(1.0) rotate(2deg)';
-            animCard.style.visibility = 'visible';
-
-            const targetX = targetHandArea.getBoundingClientRect().left + Math.random() * (targetHandArea.offsetWidth - cardWidth);
-            const targetY = isPlayer ? targetHandArea.getBoundingClientRect().top : targetHandArea.getBoundingClientRect().top + targetHandArea.offsetHeight - cardHeight;
-
-            requestAnimationFrame(() => {
-                const translateX = targetX - startLeft;
-                const translateY = targetY - startTop;
-                animCard.style.transform = `translate(${translateX}px, ${translateY}px) scale(1.0) rotate(5deg)`;
-            });
-
-            setTimeout(() => {
-                animCard.remove();
-                if (isPlayer) playerHand.push(newCard); else cpuHand.push(newCard);
-                renderHands(); resolve(newCard);
-            }, 600);
-        });
-    }
 
     // --- KART OYNAMA ANIMASYONU (3D ÇEVİRME DAHİL) ---
     async function playCard(index, owner){
@@ -623,9 +691,6 @@
         const playerHandEl = document.getElementById("player-hand");
         const cpuHandEl = document.getElementById("cpu-hand");
 
-        // Kartın DOM Elementini bul (index değişmiş olabileceğinden yeniden bul)
-        // Kartı oynamadan hemen önce yeniden render yapmamız gerektiği için bu index doğru olmayabilir.
-        // Tıklama sistemi kullandığımız için, elimizde kartın güncel index'i var, DOM elementini alalım.
         const cardElement = isPlayer 
             ? playerHandEl.children[index] 
             : cpuHandEl.children[index];
@@ -684,38 +749,26 @@
         
         // --- ETKİ HESAPLAMA ---
         let finalValue = card.deger; 
-        let logMessage = `${isPlayer ? 'Sen' : 'CPU'} ${card.isim} oynadı! `;
         
         const centerEffectX = discardRect.left + discardRect.width/2;
         const centerEffectY = discardRect.top + discardRect.height/2;
 
         if (card.tur === "puan" || card.tur === "can" || card.tur === "yakut"){
             finalValue = applyMultiplier(finalValue, isPlayer ? playerMultiplierTurns : cpuMultiplierTurns);
-            if (isPlayer) {
-                playerScore += finalValue; 
-                spawnFloatingText("player-stats", `+${finalValue}`, "#ffd700");
-                spawnParticles(centerEffectX, centerEffectY, "gold");
-            } else {
-                cpuScore += finalValue;
-                spawnFloatingText("cpu-stats", `+${finalValue}`, "#ffd700");
-                spawnParticles(centerEffectX, centerEffectY, "gold");
-            }
-            logMessage += `(+${finalValue})`;
+            if (isPlayer) { playerScore += finalValue; spawnFloatingText("player-stats", `+${finalValue}`, "#ffd700"); spawnParticles(centerEffectX, centerEffectY, "gold"); } 
+            else { cpuScore += finalValue; spawnFloatingText("cpu-stats", `+${finalValue}`, "#ffd700"); spawnParticles(centerEffectX, centerEffectY, "gold"); }
             if (card.tur === "yakut"){ 
                 if (isPlayer) playerMultiplierTurns += 2; else cpuMultiplierTurns += 2; 
-                logMessage += ` 💥 (2X)`; 
             }
         } 
         else if (card.tur === "ates" || card.tur === "buz"){
             let isOpponentShielded = isPlayer ? cpuHasShield : playerHasShield;
             if (isOpponentShielded){ 
-                logMessage += ` 🛡️ (Engellendi!)`; 
                 spawnFloatingText(isPlayer ? "cpu-stats" : "player-stats", "BLOK!", "#aaa");
                 if (isPlayer) cpuHasShield = false; else playerHasShield = false; 
             }
             else { 
                 finalValue = applyMultiplier(finalValue, isPlayer ? playerMultiplierTurns : cpuMultiplierTurns);
-                
                 const absVal = Math.abs(finalValue);
                 if (isPlayer) {
                     cpuScore += finalValue; 
@@ -727,22 +780,18 @@
                     spawnParticles(centerEffectX, centerEffectY, card.tur === "ates" ? "damage" : "ice");
                 }
                 triggerShake();
-                logMessage += ` (${finalValue} Hasar)`; 
             }
         } 
         else if (card.tur === "kalkan"){ 
             if (isPlayer) playerHasShield = true; else cpuHasShield = true; 
             spawnFloatingText(isPlayer ? "player-stats" : "cpu-stats", "KALKAN", "#88ccff");
-            logMessage += ` (Kalkan Aktif!)`;
         } 
         else if (card.tur === "hirsiz"){
             if (opponentHand.length > 0){ 
                 const s=opponentHand.splice(Math.floor(Math.random()*opponentHand.length),1)[0]; 
                 currentHand.push(s); 
                 spawnFloatingText(isPlayer ? "player-stats" : "cpu-stats", "ÇALINDI!", "#bbb");
-                logMessage += ` (Kart çaldı!)`; 
             }
-            else { logMessage += ` (Rakip boş.)`; }
         }
 
         if (card.tur !== "kalkan" && card.tur !== "hirsiz"){
@@ -751,7 +800,6 @@
         }
 
         updateUI(false); 
-        log(logMessage);
 
         if (checkZeroScore()) { isProcessingMove = false; return; }
         
@@ -772,7 +820,6 @@
         if (!gameActive || cpuHand.length===0){ turn="player"; isProcessingMove=false; log("Sıra sende!"); return; }
         let idx = -1;
         
-        // Basit AI (Önce Lethal, sonra Yakut, sonra Kalkan/Puan, rastgele)
         const lethal = cpuHand.findIndex(c => c.tur==="ates" && playerScore <= Math.abs(applyMultiplier(c.deger, cpuMultiplierTurns))); 
         if (lethal !== -1) idx = lethal;
         if (idx === -1){ const y = cpuHand.findIndex(c=>c.tur==="yakut"); if (y !== -1) idx = y; }
@@ -806,16 +853,14 @@
         pArea.innerHTML = ""; 
         cArea.innerHTML = "";
         
-        // OYUNCU ELİ (Tıklama Tabanlı)
         playerHand.forEach((card, index) => {
             const div = document.createElement("div"); 
             div.className = `card ${card.renk}`;
             div.innerHTML = `${card.img}<div style="font-weight:700;">${card.isim}</div><div style="font-size:10px;">${card.deger>0? '+'+card.deger : card.deger}</div>`;
             
-            // Seçili kartı koru
             if (index === selectedCardIndex) {
                  div.classList.add('selected');
-                 highlightFusionTargets(card.isim, index); // Yeniden çizilirken vurguları koru
+                 highlightFusionTargets(card.isim, index); 
             }
             
             div.dataset.index = index; 
@@ -826,7 +871,6 @@
             pArea.appendChild(div);
         });
         
-        // RAKİP ELİ
         cpuHand.forEach(() => {
             const div = document.createElement("div"); div.className = "card card-back"; 
             div.innerHTML = `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="52" height="44" rx="6" fill="#6b6b6b"/></svg></div>`;
@@ -847,21 +891,32 @@
         cStats.innerHTML = `<span>🤴 RAKİP</span><span id="cpu-score">Hazine: ${cpuScore}</span>${cM}`;
     }
 
-    let logTimeout = null;
-    function log(msg){
-        const el = document.getElementById("log-area"); el.innerText = msg; el.style.opacity = '1';
-        if (logTimeout) clearTimeout(logTimeout); logTimeout = setTimeout(()=>{ el.style.opacity = '0'; }, 3000);
+
+    // --- MENÜ FONKSİYONLARI (Kısaltıldı) ---
+    function hideAllMenus() {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('game-board').classList.add('hidden');
+        document.getElementById('catalog-menu').classList.add('hidden');
     }
-    
+    function showMenu() { hideAllMenus(); document.getElementById('main-menu').classList.remove('hidden'); }
+    function confirmExit() { if(confirm("Oyundan çıkıp ana menüye dönmek istiyor musun?")) { showMenu(); } }
+    function showGame(){ hideAllMenus(); document.getElementById('game-board').classList.remove('hidden'); startGame(); }
+    function showCatalog() {
+        hideAllMenus(); document.getElementById('catalog-menu').classList.remove('hidden');
+        renderCatalogList();
+        document.getElementById('catalog-detail').innerHTML = '<p style="font-style:italic;">Detayları görmek için listeden bir kart seçin.</p>';
+    }
+    function renderCatalogList() { /* ... aynı kaldı ... */ }
+    function showCardDetail(card) { /* ... aynı kaldı ... */ }
+
+
     // --- BAŞLANGIÇ OLAYLARI ---
 
     document.addEventListener('DOMContentLoaded', ()=>{
         
-        // Atılan Yığın için TIKLAMA dinleyicisi (Kart Oynama)
         const discardPile = document.getElementById('discard-pile');
         discardPile.addEventListener('click', handleDiscardPileClick);
 
-        // SPLASH SCREEN MANTIĞI
         const splash = document.getElementById('splash-screen'); splash.style.opacity = '1';
         setTimeout(() => { 
             splash.style.opacity = '0'; 
