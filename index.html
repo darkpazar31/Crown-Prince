@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crown Prince — Kart Oyunu</title>
+    <title>Crown Prince — Kart Oyunu (Fusion)</title>
 
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
@@ -190,6 +190,23 @@
         .card .card-img { width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; margin-bottom: 4px; }
         .card .card-img svg { width: 40px; height: 40px; }
 
+        /* YENİ SÜRÜKLEME VE BİRLEŞTİRME STİLLERİ */
+        .card[draggable="true"] {
+            cursor: grab;
+        }
+        .card.dragging {
+            opacity: 0.5; 
+            cursor: grabbing;
+        }
+        .card.drop-target-fusion {
+            outline: 4px solid var(--gold);
+            box-shadow: 0 0 15px var(--gold);
+        }
+        #discard-pile.drop-target-play {
+            outline: 4px dashed var(--ruby);
+            background: rgba(177, 10, 10, 0.4);
+        }
+        
         #table-center { display:flex; justify-content:space-around; align-items:center; flex: 1; max-height: 180px; min-height: 140px; width: 100%; position:relative; margin: 5px 0; }
         #discard-pile, #deck-area { width: 100px; height: 145px; border-radius:8px; box-shadow: 4px 5px 10px rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; flex-direction:column; padding:8px; position: relative; }
         #discard-pile { border: 2px dashed #777; background: rgba(0,0,0,0.35); color: var(--parchment); font-size: 12px; }
@@ -288,6 +305,13 @@
         { isim: "Hırsız", tur: "hirsiz", deger: 0, renk: "type-hirsiz", aciklama: "Kart çalar.", img: `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M20 18c0-6 6-10 12-10s12 4 12 10c0 4-3 6-6 6H26c-3 0-6-2-6-6z" fill="#333"/><path d="M18 44c6 6 20 8 28 0-8 2-20 2-28 0z" fill="#555"/></svg></div>`, tekrar: 3, calisma: "Rakibin elinden rastgele bir kartı alıp desteye karıştırır." }
     ];
 
+    // --- YENİ KART BİRLEŞTİRME HARİTASI ---
+    const fusionMap = {
+        "Bakır": "Gümüş",
+        "Gümüş": "Altın",
+        "Altın": "Elmas"
+    };
+
     let playerHand = [], cpuHand = [], playerScore = 50, cpuScore = 50, turn = "player", anaDeste = [], gameActive = true, lastPlayedCard = null;
     let playerMultiplierTurns = 0, cpuMultiplierTurns = 0, cpuHasShield = false, playerHasShield = false;
     let isProcessingMove = false; 
@@ -310,15 +334,13 @@
 
     // --- YENİ EFEKT FONKSİYONLARI ---
 
-    // 1. Ekran Titremesi
     function triggerShake() {
         const board = document.getElementById("game-board");
         board.classList.remove("shake-effect");
-        void board.offsetWidth; // Reflow tetikle
+        void board.offsetWidth; 
         board.classList.add("shake-effect");
     }
 
-    // 2. Süzülen Sayılar (Floating Text)
     function spawnFloatingText(targetId, text, color) {
         const targetEl = document.getElementById(targetId);
         if (!targetEl) return;
@@ -328,13 +350,11 @@
         floatEl.className = "floating-text";
         floatEl.innerText = text;
         floatEl.style.color = color;
-        // Konumlandırma: Hedefin ortası
         floatEl.style.left = (rect.left + rect.width / 2 - 20) + "px";
         floatEl.style.top = (rect.top + rect.height / 2) + "px";
         
         document.body.appendChild(floatEl);
         
-        // Animasyon
         requestAnimationFrame(() => {
             floatEl.style.transform = "translateY(-60px) scale(1.2)";
             floatEl.style.opacity = "0";
@@ -343,7 +363,6 @@
         setTimeout(() => floatEl.remove(), 1000);
     }
 
-    // 3. Partikül Efektleri
     function spawnParticles(x, y, type) {
         const colors = {
             "gold": ["#ffd700", "#fff"],
@@ -361,7 +380,6 @@
             p.style.top = y + "px";
             document.body.appendChild(p);
             
-            // Rastgele yön
             const angle = Math.random() * Math.PI * 2;
             const velocity = 20 + Math.random() * 60;
             const tx = Math.cos(angle) * velocity;
@@ -410,6 +428,67 @@
             </div>`;
     }
 
+    // --- KART BİRLEŞTİRME MANTIĞI ---
+
+    function getCardByName(isim) {
+        return kartKatalogu.find(k => k.isim === isim);
+    }
+
+    function fusionCards(cardName1, cardName2, hand, index1, index2) {
+        if (cardName1 !== cardName2 || !fusionMap[cardName1]) {
+            // log("❌ Bu kartlar birleştirilemez. (Fusion check)"); // Bu log'u drop'tan kaldırıp buraya taşıdık.
+            return false;
+        }
+        
+        const newCardName = fusionMap[cardName1];
+        const newCard = getCardByName(newCardName);
+        
+        if (!newCard) {
+            log("❌ Yeni kart bulunamadı.");
+            return false;
+        }
+
+        // Yüksek indeksi önce silmek, düşük indeksin kaymasını önler.
+        const indices = [index1, index2].sort((a, b) => b - a);
+        hand.splice(indices[0], 1);
+        hand.splice(indices[1], 1);
+
+        hand.push({...newCard}); // Yeni kartın bir kopyasını ekle
+
+        playSound('sound-score'); 
+        log(`✨ İki ${cardName1} kartı birleşerek bir ${newCardName} kartı oldu!`);
+
+        renderHands(); 
+        updateUI(false);
+        return true;
+    }
+
+    // --- SÜRÜKLEME HEDEFLERİ YÖNETİMİ ---
+
+    function highlightDropTargets(draggedIndex) {
+        const draggedCard = playerHand[draggedIndex];
+
+        // 1. Birleştirme hedeflerini vurgula
+        if (fusionMap[draggedCard.isim]) {
+            document.getElementById("player-hand").querySelectorAll('.card').forEach((cardEl, index) => {
+                // Sadece aynı isimli kartları ve kendi kartını değilse vurgula
+                if (index !== draggedIndex && cardEl.dataset.name === draggedCard.isim) {
+                    cardEl.classList.add('drop-target-fusion');
+                }
+            });
+        }
+
+        // 2. Atılan yığın hedefini vurgula
+        document.getElementById("discard-pile").classList.add('drop-target-play');
+    }
+
+    function removeDropTargetHighlights() {
+        document.getElementById("player-hand").querySelectorAll('.card').forEach((cardEl) => {
+            cardEl.classList.remove('drop-target-fusion');
+        });
+        document.getElementById("discard-pile").classList.remove('drop-target-play');
+    }
+    
     // --- OYUN MANTIĞI ---
     function startGame(){
         createAndShuffleDeck(); playerScore = 50; cpuScore = 50;
@@ -482,7 +561,20 @@
         let opponentHand = isPlayer ? cpuHand : playerHand;
         
         const card = currentHand[index];
-        const cardElement = isPlayer ? document.getElementById("player-hand").children[index] : document.getElementById("cpu-hand").children[index];
+        const playerHandEl = document.getElementById("player-hand");
+        const cpuHandEl = document.getElementById("cpu-hand");
+
+        // Kartın DOM Elementini bul (index değişmiş olabileceğinden yeniden bul)
+        const cardElement = isPlayer 
+            ? playerHandEl.children[index] 
+            : cpuHandEl.children[index];
+
+        if (!cardElement) {
+             isProcessingMove = false; 
+             renderHands(); // Hata varsa eli yeniden çiz
+             return;
+        }
+
         const discardPile = document.getElementById("discard-pile");
         const discardRect = discardPile.getBoundingClientRect();
         const cardRect = cardElement.getBoundingClientRect();
@@ -492,16 +584,12 @@
         cloneCard.classList.add('animated-card');
         cloneCard.classList.remove('card-back');
         
-        // CPU ise, kartı "gizli" halden "açık" hale çevirmemiz lazım
-        // Görünümü oluşturuyoruz:
         if (!isPlayer) {
-            cloneCard.className = `card animated-card ${card.renk}`; // Rengi ver
+            cloneCard.className = `card animated-card ${card.renk}`; 
             cloneCard.innerHTML = `${card.img}<div style="font-weight:700;">${card.isim}</div><div style="font-size:10px;">${card.deger>0? '+'+card.deger : card.deger}</div>`;
-            // Başlangıçta ters çevir (180 derece)
             cloneCard.style.transform = `rotateY(180deg)`;
         }
 
-        // Pozisyonu ayarla
         cloneCard.style.left = cardRect.left + 'px';
         cloneCard.style.top = cardRect.top + 'px';
         document.body.appendChild(cloneCard);
@@ -520,18 +608,15 @@
             const translateX = targetCenterX - currentCenterX;
             const translateY = targetCenterY - currentCenterY;
             
-            // Eğer CPU ise 180 dereceden 0'a dönerek gelmeli (Flip)
             if (!isPlayer) {
-                // translate ve scale ile birlikte rotateY(0deg) yaparak kartı açıyoruz
                 cloneCard.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.95) rotateY(0deg) rotate(5deg)`;
             } else {
-                // Oyuncu zaten görüyor, sadece hareket
                 cloneCard.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.95) rotate(5deg)`;
             }
             cloneCard.style.opacity = '1';
         });
 
-        await new Promise(r => setTimeout(r, 600)); // Animasyon süresi
+        await new Promise(r => setTimeout(r, 600)); 
         
         currentHand.splice(index,1); cardElement.remove(); lastPlayedCard = card;
         playSound('sound-play'); cloneCard.remove();
@@ -539,10 +624,7 @@
         // --- ETKİ HESAPLAMA ---
         let finalValue = card.deger; 
         let logMessage = `${isPlayer ? 'Sen' : 'CPU'} ${card.isim} oynadı! `;
-        let damageDealt = false;
-        let scoreGained = false;
         
-        // Merkezde partikül efekti
         const centerEffectX = discardRect.left + discardRect.width/2;
         const centerEffectY = discardRect.top + discardRect.height/2;
 
@@ -557,7 +639,6 @@
                 spawnFloatingText("cpu-stats", `+${finalValue}`, "#ffd700");
                 spawnParticles(centerEffectX, centerEffectY, "gold");
             }
-            scoreGained = true;
             logMessage += `(+${finalValue})`;
             if (card.tur === "yakut"){ 
                 if (isPlayer) playerMultiplierTurns += 2; else cpuMultiplierTurns += 2; 
@@ -574,19 +655,17 @@
             else { 
                 finalValue = applyMultiplier(finalValue, isPlayer ? playerMultiplierTurns : cpuMultiplierTurns);
                 
-                // Hasar pozitif sayı olarak gösterilir
                 const absVal = Math.abs(finalValue);
                 if (isPlayer) {
-                    cpuScore += finalValue; // finalValue negatif
+                    cpuScore += finalValue; 
                     spawnFloatingText("cpu-stats", `-${absVal}`, "#ff4444");
                     spawnParticles(centerEffectX, centerEffectY, card.tur === "ates" ? "damage" : "ice");
                 } else {
-                    playerScore += finalValue; // finalValue negatif
+                    playerScore += finalValue; 
                     spawnFloatingText("player-stats", `-${absVal}`, "#ff4444");
                     spawnParticles(centerEffectX, centerEffectY, card.tur === "ates" ? "damage" : "ice");
                 }
                 triggerShake();
-                damageDealt = true;
                 logMessage += ` (${finalValue} Hasar)`; 
             }
         } 
@@ -622,7 +701,7 @@
         
         if (isPlayer){ 
             turn = "cpu"; isProcessingMove = false; 
-            setTimeout(cpuTurn, 1000); // CPU düşünme süresi
+            setTimeout(cpuTurn, 1000); 
         } else { 
             turn = "player"; isProcessingMove = false; log("Sıra sende!"); 
         }
@@ -631,7 +710,8 @@
     function cpuTurn(){
         if (!gameActive || cpuHand.length===0){ turn="player"; isProcessingMove=false; log("Sıra sende!"); return; }
         let idx = -1;
-        // Basit AI
+        
+        // Basit AI (Önce Lethal, sonra Yakut, sonra Kalkan/Puan, rastgele)
         const lethal = cpuHand.findIndex(c => c.tur==="ates" && playerScore <= Math.abs(applyMultiplier(c.deger, cpuMultiplierTurns))); 
         if (lethal !== -1) idx = lethal;
         if (idx === -1){ const y = cpuHand.findIndex(c=>c.tur==="yakut"); if (y !== -1) idx = y; }
@@ -660,13 +740,90 @@
     }
 
     function renderHands(){
-        const pArea = document.getElementById("player-hand"); const cArea = document.getElementById("cpu-hand");
-        pArea.innerHTML = ""; cArea.innerHTML = "";
+        const pArea = document.getElementById("player-hand"); 
+        const cArea = document.getElementById("cpu-hand");
+        pArea.innerHTML = ""; 
+        cArea.innerHTML = "";
+        
+        // OYUNCU ELİ (Sürükle-Bırak/Tıklama Etkin)
         playerHand.forEach((card, index) => {
-            const div = document.createElement("div"); div.className = `card ${card.renk}`;
+            const div = document.createElement("div"); 
+            div.className = `card ${card.renk}`;
             div.innerHTML = `${card.img}<div style="font-weight:700;">${card.isim}</div><div style="font-size:10px;">${card.deger>0? '+'+card.deger : card.deger}</div>`;
-            div.onclick = () => playCard(index, 'player'); pArea.appendChild(div);
+            
+            // --- SÜRÜKLE BIRAK EKLEMELERİ ---
+            div.setAttribute('draggable', 'true');
+            div.dataset.index = index; 
+            div.dataset.name = card.isim; 
+            
+            // Tıklama ile kart oynama
+            div.onclick = (e) => {
+                 if (!div.dataset.isDragging && !isProcessingMove && turn === 'player') {
+                     playCard(index, 'player'); 
+                 }
+                 delete div.dataset.isDragging; 
+            };
+
+            // Sürükleme Başladı
+            div.addEventListener('dragstart', (e) => {
+                if (isProcessingMove || turn !== 'player') { 
+                    e.preventDefault(); 
+                    return; 
+                }
+                e.dataTransfer.setData('text/plain', JSON.stringify({ index: index, name: card.isim }));
+                div.classList.add('dragging');
+                div.dataset.isDragging = 'true'; 
+                highlightDropTargets(index); 
+            });
+
+            // Sürükleme Bitti
+            div.addEventListener('dragend', () => {
+                div.classList.remove('dragging');
+                removeDropTargetHighlights();
+                delete div.dataset.isDragging;
+            });
+
+            // Üzerine Geldi (Birleştirme Hedefi) - DÜZELTİLEN KISIM
+            div.addEventListener('dragover', (e) => {
+                // Tarayıcıların kısıtlamasını aşmak için, sadece sürüklenen veri tipi 
+                // uygunsa (text/plain) drop'a izin veriyoruz. Detaylı kontrol drop'ta.
+                if (e.dataTransfer.types.includes('text/plain')) {
+                     e.preventDefault(); 
+                }
+            });
+            
+            // Üzerine Bırakıldı (Birleştirme İşlemi)
+            div.addEventListener('drop', (e) => {
+                e.preventDefault();
+                removeDropTargetHighlights();
+
+                if (isProcessingMove || turn !== 'player') return;
+
+                try {
+                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    const draggedIndex = parseInt(data.index);
+                    const targetIndex = parseInt(div.dataset.index);
+                    
+                    if (draggedIndex === targetIndex) return; // Kendi üzerine bırakmayı engelle
+
+                    // Kontrol: Kartlar aynı isimde olmalı VE birleştirilebilir olmalı
+                    if (data.name === div.dataset.name && fusionMap[data.name]) {
+                         // Birleştirme işlemini yap
+                         fusionCards(data.name, div.dataset.name, playerHand, draggedIndex, targetIndex);
+                    } else {
+                         // Eğer drop gerçekleştiyse ama birleşme şartları sağlanmıyorsa bilgilendir
+                         log(`❌ ${data.name} kartı ${div.dataset.name} kartı ile birleştirilemez.`);
+                    }
+
+                } catch(error) {
+                    console.error("Fusion Drop Error:", error);
+                }
+            });
+
+            pArea.appendChild(div);
         });
+        
+        // RAKİP ELİ
         cpuHand.forEach(() => {
             const div = document.createElement("div"); div.className = "card card-back"; 
             div.innerHTML = `<div class="card-img"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="52" height="44" rx="6" fill="#6b6b6b"/></svg></div>`;
@@ -675,10 +832,13 @@
     }
 
     function updateUI(skip=false){
-        const pStats = document.getElementById("player-stats"); const cStats = document.getElementById("cpu-stats");
-        // Flash classları artık kullanmıyoruz çünkü Floating Text var, ama sesler için tutabiliriz
-        let pM = playerMultiplierTurns>0 ? `<div class="multiplier">2X (${playerMultiplierTurns})</div>` : ''; let cM = cpuMultiplierTurns>0 ? `<div class="multiplier">2X (${cpuMultiplierTurns})</div>` : '';
-        if (playerHasShield) pM += `<div class="shield-icon">🛡️</div>`; if (cpuHasShield) cM += `<div class="shield-icon">🛡️</div>`;
+        const pStats = document.getElementById("player-stats"); 
+        const cStats = document.getElementById("cpu-stats");
+
+        let pM = playerMultiplierTurns>0 ? `<div class="multiplier">2X (${playerMultiplierTurns})</div>` : ''; 
+        let cM = cpuMultiplierTurns>0 ? `<div class="multiplier">2X (${cpuMultiplierTurns})</div>` : '';
+        if (playerHasShield) pM += `<div class="shield-icon">🛡️</div>`; 
+        if (cpuHasShield) cM += `<div class="shield-icon">🛡️</div>`;
         
         pStats.innerHTML = `<span>👑 SEN</span><span id="player-score">Hazine: ${playerScore}</span>${pM}`;
         cStats.innerHTML = `<span>🤴 RAKİP</span><span id="cpu-score">Hazine: ${cpuScore}</span>${cM}`;
@@ -689,10 +849,50 @@
         const el = document.getElementById("log-area"); el.innerText = msg; el.style.opacity = '1';
         if (logTimeout) clearTimeout(logTimeout); logTimeout = setTimeout(()=>{ el.style.opacity = '0'; }, 3000);
     }
+    
+    // --- BAŞLANGIÇ & ATIK YIĞINI SÜRÜKLEME OLAYLARI ---
 
     document.addEventListener('DOMContentLoaded', ()=>{
+        
+        // Discard Pile'a Sürükle Bırak Event Listener'ları (Kart Oynama)
+        const discardPile = document.getElementById('discard-pile');
+
+        discardPile.addEventListener('dragover', (e) => {
+            // Sadece text/plain varsa drop'a izin ver
+            if (!isProcessingMove && turn === 'player' && e.dataTransfer.types.includes('text/plain')) {
+                 e.preventDefault(); 
+            }
+        });
+
+        discardPile.addEventListener('drop', (e) => {
+            e.preventDefault();
+            removeDropTargetHighlights(); 
+            
+            if (isProcessingMove || turn !== 'player') return;
+
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                const index = parseInt(data.index);
+                
+                // Kartı Oyna!
+                playCard(index, 'player'); 
+
+            } catch(error) {
+                log("❌ Kart Oynama Hatası.");
+                console.error("Play Drop Error:", error);
+            }
+        });
+
+        // SPLASH SCREEN MANTIĞI
         const splash = document.getElementById('splash-screen'); splash.style.opacity = '1';
-        setTimeout(() => { splash.style.opacity = '0'; setTimeout(() => { splash.style.display = 'none'; showMenu(); log("Oyun yüklendi. Hazır!"); }, 1000); }, 2000);
+        setTimeout(() => { 
+            splash.style.opacity = '0'; 
+            setTimeout(() => { 
+                splash.style.display = 'none'; 
+                showMenu(); 
+                log("Oyun yüklendi. Hazır!"); 
+            }, 1000); 
+        }, 2000);
     });
 </script>
 </body>
