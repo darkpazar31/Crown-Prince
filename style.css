@@ -1,0 +1,334 @@
+/* --- ORTA ÇAĞ / ROYAL THEME CSS --- */
+:root {
+    --medieval-wood-dark: #2f1b17;
+    --medieval-wood-board: #4b2f2a;
+    --medieval-stone: #7a6f6b;
+    --parchment: #f7f4e9;
+    --gold: #d4af37; /* ALTIN RENGİ (ESKİ) */
+    --text-light: #f4eee6;
+    --text-dark: #2a2a2a;
+    --ruby: #b10a0a;
+    --ice: #00ced1;
+    --card-back-dark: #3a221f; /* İÇİ KAHVERENGİ */
+    --card-back-border: #2b1b18;
+    --menu-bg-gradient: linear-gradient(145deg, #3a2520, #251814);
+}
+* { box-sizing: border-box; }
+body {
+    background-color: var(--medieval-wood-dark);
+    color: var(--text-light);
+    font-family: 'MedievalSharp', cursive;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+/* --- EFEKTLER --- */
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0.5deg); }
+    25% { transform: translate(-1px, 0px) rotate(-0.5deg); }
+    50% { transform: translate(1px, -1px) rotate(0.5deg); }
+    75% { transform: translate(-1px, 0px) rotate(-0.5deg); }
+    100% { transform: translate(0px, 0px) rotate(0deg); }
+}
+.shake-effect { animation: shake 0.3s ease-in-out; animation-iteration-count: 2; }
+
+/* BUZ EFEKTİ */
+.card.frozen {
+    position: relative;
+}
+.card.frozen::after {
+    content: "❄️"; 
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 206, 209, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    border-radius: 6px;
+    pointer-events: none;
+    backdrop-filter: blur(2px);
+    z-index: 10;
+}
+.card.frozen {
+    border-color: var(--ice) !important;
+    cursor: not-allowed !important;
+}
+
+/* ÇALINTI KART GÖRÜNÜMÜ */
+.card.stolen {
+    border: 3px solid #800080 !important; /* Mor çerçeve */
+    box-shadow: 0 0 15px #800080, inset 0 0 10px rgba(128, 0, 128, 0.5) !important;
+}
+.card.stolen::after {
+    content: "🕵️";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 16px;
+    background: #2a2a2a;
+    border-radius: 50%;
+    border: 1px solid #800080;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.floating-text {
+    position: absolute;
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 2000;
+    opacity: 1;
+    text-shadow: 2px 2px 0px #000;
+    transition: transform 1s ease-out, opacity 1s ease-out;
+}
+
+.particle {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    pointer-events: none; z-index: 1500; opacity: 1;
+    transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+}
+
+/* SPLASH SCREEN */
+#splash-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background-color: var(--medieval-wood-dark); z-index: 1000;
+    font-family: 'Cinzel', serif; font-size: 60px; color: var(--gold);
+    text-shadow: 0 0 10px rgba(255,215,0,0.5); opacity: 0; transition: opacity 1s ease-in-out;
+}
+
+/* --- MENÜLER --- */
+.game-menu {
+    position: absolute; width: 84%; max-width: 560px;
+    padding: 36px 22px; background: var(--menu-bg-gradient);
+    border: 10px solid var(--gold); border-radius: 18px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.9); z-index: 100;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    display: flex; 
+    flex-direction: column; 
+    align-items: center;
+}
+.game-menu.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+#catalog-menu { padding-top: 60px; } 
+
+#menu-title { 
+    font-size: 50px; 
+    color: var(--gold); 
+    margin-bottom: 30px; 
+    font-family:'Cinzel', serif;
+}
+#menu-sub { font-size: 14px; color: var(--parchment); margin-bottom: 20px; }
+
+.btn-action { display: none; }
+
+.btn-home-style {
+    position: absolute; top: 15px; left: 15px;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--ruby); border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 200; box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+    color: var(--gold); transition: transform 0.2s;
+}
+.btn-home-style:hover { transform: scale(1.1); }
+.btn-home-style .material-icons { font-size: 28px; }
+
+/* --- YENİ ANA MENÜ ELEMENTLERİ --- */
+#menu-card-container {
+    cursor: pointer;
+    perspective: 1000px;
+    margin-bottom: 30px;
+}
+#menu-card {
+    /* Kart arka yüzü rengi ve sağa eğim */
+    width: 150px; 
+    height: 220px;
+    transform: rotateX(10deg) rotateY(0deg) rotateZ(5deg); 
+    background-color: var(--card-back-dark) !important; /* İÇİ KAHVERENGİ */
+    
+    /* İstenen: Altın rengi çizgi (stroke) - !important ile çakışma önlendi */
+    border: 5px solid var(--gold) !important; 
+    
+    border-radius: 8px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    
+    /* Parlama kaldırıldı, sadece derinlik gölgesi kaldı */
+    box-shadow: 10px 10px 20px rgba(0,0,0,0.8); 
+    
+    position: relative; 
+    padding: 0;
+}
+
+#menu-card-container:hover #menu-card {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1.05);
+    /* Parlama kaldırıldı */
+    box-shadow: 10px 10px 20px rgba(0,0,0,0.8);
+}
+
+#play-icon {
+    font-size: 80px;
+    color: var(--gold); /* ALTIN RENGİ BAŞLATMA İKONU */
+    transition: transform 0.2s;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+#menu-card-container:hover #play-icon {
+    transform: scale(1.1);
+}
+
+#menu-controls {
+    display: flex;
+    gap: 30px;
+    margin-top: 10px;
+}
+
+.menu-control-btn {
+    width: 60px; 
+    height: 60px; 
+    border-radius: 50%;
+    background: var(--medieval-wood-dark);
+    border: 4px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--gold);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    transition: background 0.2s, transform 0.2s;
+}
+.menu-control-btn:hover {
+    background: #3b2521;
+    transform: translateY(-2px);
+}
+.menu-control-btn .material-icons {
+    font-size: 30px;
+    margin: 0; 
+}
+
+/* KART KATALOĞU */
+#catalog-list { max-height: 50vh; overflow-y: auto; margin-bottom: 15px; text-align: left; }
+.card-list-item {
+    padding: 10px; margin: 6px 0; background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(212,175,55,0.2); border-radius: 5px; cursor: pointer;
+    transition: background 0.1s; font-family: 'Cinzel', serif;
+}
+.card-list-item:hover { background: rgba(212,175,55,0.15); }
+.card-detail { margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; text-align: left;}
+.card-detail strong { color: var(--gold); font-size: 16px; display: block; margin-bottom: 4px; }
+.detail-value { font-style: italic; color: var(--parchment); }
+
+/* OYUN TAHTASI */
+#game-board {
+    width: 100%; height: 100%; max-width: 600px;
+    background-color: var(--medieval-wood-board); padding: 10px; 
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    position: relative;
+    transform-origin: center;
+}
+#game-board.hidden { display: none; }
+
+.stats {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: rgba(0,0,0,0.35);
+    border: 2px solid var(--gold); border-radius: 8px;
+    font-size: 14px; color: var(--gold); position: relative;
+    margin: 5px 0; flex-shrink: 0;
+}
+.multiplier, .shield-icon { position: absolute; top: -10px; background: var(--ruby); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--gold); font-size: 10px; z-index: 5; }
+.multiplier { right: 10px; } .shield-icon { right: 70px; background: #3498db; }
+
+.hand-area {
+    display: flex; gap: 8px; flex: 1; max-height: 175px; min-height: 130px;
+    align-items: center; justify-content: center; overflow-x: auto; padding: 5px;
+    width: 100%; border-radius: 6px; background: rgba(0,0,0,0.18);
+}
+.hand-area::-webkit-scrollbar { display: none; }
+
+.card {
+    width: 100px; height: 145px; background: var(--parchment); border: 2px solid var(--medieval-wood-dark);
+    border-radius: 8px; color: var(--text-dark); box-shadow: 3px 4px 8px rgba(0,0,0,0.6);
+    transition: transform 0.18s ease, opacity 0.18s ease; 
+    cursor: pointer; padding: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between; font-size: 11px; position: relative; flex-shrink: 0;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+}
+.card:hover:not(.frozen) { transform: translateY(-4px) rotate(-0.5deg) scale(1.02); }
+.card.selected { 
+    border: 3px solid var(--ruby); 
+    box-shadow: 0 0 15px rgba(177, 10, 10, 0.8);
+    transform: translateY(-8px) scale(1.04) !important;
+}
+
+.card-back { background-color: var(--card-back-dark) !important; border-color: var(--card-back-border) !important; color: var(--text-light) !important; }
+.card-back:hover { transform: none; }
+.card .card-img { width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; margin-bottom: 4px; }
+.card .card-img svg { width: 40px; height: 40px; }
+
+/* Birleştirme hedefi vurgusu */
+.card.drop-target-fusion { 
+    outline: 4px solid var(--gold); /* Sarı Vurgu */
+    box-shadow: 0 0 15px var(--gold);
+}
+/* Atma hedefi vurgusu */
+#discard-pile.drop-target-play {
+    outline: 4px dashed var(--gold); /* Sarı Vurgu */
+    background: rgba(212, 175, 55, 0.4);
+}
+
+#table-center { display:flex; justify-content:space-around; align-items:center; flex: 1; max-height: 180px; min-height: 140px; width: 100%; position:relative; margin: 5px 0; }
+#discard-pile { 
+    width: 100px; height: 145px; border-radius:8px; box-shadow: 4px 5px 10px rgba(0,0,0,0.6); 
+    display:flex; align-items:center; justify-content:center; flex-direction:column; padding:8px; 
+    position: relative; cursor: pointer;
+    border: 2px dashed #777; background: rgba(0,0,0,0.35); color: var(--parchment); font-size: 12px;
+    transition: background 0.2s, outline 0.2s;
+}
+#discard-pile:hover:not(.drop-target-play) { background: rgba(0,0,0,0.5); } 
+
+#deck-area { width: 100px; height: 145px; border-radius:8px; box-shadow: 4px 5px 10px rgba(0,0,0,0.6); background: var(--card-back-dark); border: 2px solid var(--gold); transform: rotate(2deg); display:flex; align-items:center; justify-content:center; flex-direction:column; padding:8px; }
+#deck-area span { z-index: 1; font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px; }
+
+.animated-card {
+    position: fixed; top: 0; left: 0;
+    z-index: 900; 
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease-out;
+    will-change: transform, opacity; pointer-events: none;
+    transform-style: preserve-3d;
+}
+
+#log-area {
+    position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
+    width: 80%; padding: 8px 12px; background: rgba(0,0,0,0.75); border-radius: 8px;
+    border: 1px solid var(--gold); color: var(--parchment); font-size: 16px; font-weight: 700; text-align: center;
+    opacity: 0; transition: opacity 0.2s ease; z-index: 60; pointer-events: none;
+}
+
+@media (max-height: 700px) {
+    .card, #discard-pile, #deck-area { width: 80px; height: 115px; font-size: 10px; }
+    .card .card-img svg { width: 32px; height: 32px; }
+    .hand-area { min-height: 120px; }
+    #table-center { min-height: 125px; }
+    .stats { padding: 4px 8px; font-size: 12px; }
+    #menu-title { font-size: 40px; } 
+    #menu-card { width: 120px; height: 180px; } 
+    #play-icon { font-size: 60px; } 
+    .menu-control-btn { width: 50px; height: 50px; } 
+    .menu-control-btn .material-icons { font-size: 24px; }
+    .control-label { display: none; } 
+}
